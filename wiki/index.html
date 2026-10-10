@@ -249,6 +249,11 @@ a.wl.q{color:#8fd18f}a.wl.q:hover{color:#b5e6b5}
 a.wl.miss{color:var(--warn);border-bottom-style:dashed}
 .wl-pick{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:8px;padding:8px;border:1px solid var(--accent);border-radius:4px;background:#0b0b0b}
 .wl-pick input{flex:1;min-width:180px}.wl-msg{width:100%;font-size:12px;color:var(--warn)}.wl-msg:empty{display:none}
+.ver-sel{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);white-space:nowrap}
+.ver-sel select{font-size:12.5px;padding:3px 6px;max-width:220px}
+.ver-old{margin:0 0 10px;padding:8px 12px;border:1px solid #5a4826;background:#1d1708;color:#e9d3a3;border-radius:4px;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.ver-old b{color:#fff}.ver-old button{margin-left:auto;font-size:12px;padding:3px 10px;border-color:var(--accent);color:var(--accent)}
+@media (max-width:720px){.ver-sel{margin-left:0}}
 .drop-hint{border:1px dashed var(--line-2);border-radius:4px;padding:24px;color:var(--muted);line-height:1.9;margin-top:10px}
 .drop-hint b{color:var(--white)}
 </style>
@@ -258,9 +263,11 @@ a.wl.miss{color:var(--warn);border-bottom-style:dashed}
   <div class="nav-in">
     <a class="brand" href="#/">LOOTANIA <small>Wiki</small></a>
     <ul class="menu" id="menu"></ul>
+    <label class="ver-sel" id="verBox" hidden><span>版本</span><select id="ver" aria-label="資料版本"></select></label>
   </div>
 </header>
 <main>
+  <div class="ver-old" id="verOld" hidden></div>
   <div class="crumb" id="crumb"></div>
   <div id="home" hidden></div>
   <div id="app" hidden>
@@ -419,8 +426,7 @@ function parseQuery(raw) {
 </script>
 <!-- 資料：技能編輯器、符文編輯器存檔時產生的 skills.js、runes.js（和這個頁面放在同一個資料夾） -->
 <script>window.WIKI_DATA_DIR = 'data/';</script>
-<script src="data/skills.js"></script>
-<script src="data/runes.js"></script>
+<script src="data/versions.js"></script>
 <script src="data/home.js"></script>
 <script>
 (() => {
@@ -431,15 +437,20 @@ function parseQuery(raw) {
   const DATA_DIR = window.WIKI_DATA_DIR || '';
   // 可以編輯首頁資訊欄：本機開啟或預覽版；放到網站上（https）時只顯示、不提供編輯
   const CAN_EDIT = !!window.WIKI_PREVIEW || location.protocol === 'file:';
+  // 資料依版本分資料夾：data/versions.js 列出版本，data/<版本資料夾>/skills.js、runes.js、圖示表
+  let VDIR = DATA_DIR;   // 目前版本的資料夾（含結尾 /）
   const SRC = {
-    skills: { name: '技能', data: window.LOOTANIA_SKILLS, list: 'skills', js: 'skills.js', sheet: 'skill-icons.png' },
-    runes:  { name: '符文', data: window.LOOTANIA_RUNES,  list: 'runes',  js: 'runes.js',  sheet: 'rune-icons.png' },
+    skills: { name: '技能', var: 'LOOTANIA_SKILLS', list: 'skills', js: 'skills.js', sheet: 'skill-icons.png' },
+    runes:  { name: '符文', var: 'LOOTANIA_RUNES',  list: 'runes',  js: 'runes.js',  sheet: 'rune-icons.png' },
   };
-  for (const s of Object.values(SRC)) {
-    const d = s.data; s.ok = !!(d && Array.isArray(d[s.list]));
-    s.items = s.ok ? d[s.list] : []; s.meta = mergeMeta(s.ok ? d.meta : null);
-    const ic = s.ok && d.iconSheet;
-    s.sheetCfg = ic ? { src: /^data:/.test(ic.file || '') ? ic.file : DATA_DIR + (ic.file || s.sheet), cell: ic.cell, cols: ic.cols, rows: ic.rows, count: ic.count } : null;
+  function initData() {
+    for (const s of Object.values(SRC)) {
+      const d = s.data = window[s.var]; s.ok = !!(d && Array.isArray(d[s.list]));
+      s.items = s.ok ? d[s.list] : []; s.meta = mergeMeta(s.ok ? d.meta : null);
+      const ic = s.ok && d.iconSheet;
+      s.sheetCfg = ic ? { src: /^data:/.test(ic.file || '') ? ic.file : VDIR + (ic.file || s.sheet), cell: ic.cell, cols: ic.cols, rows: ic.rows, count: ic.count } : null;
+    }
+    PAGES.forEach(p => { p.items = SRC[p.src].items.filter(p.pick); });
   }
   const useSheet = src => SC.setSheet(src.sheetCfg);   // 技能、符文各有一張圖示表，產生畫面前先切換
 
@@ -450,7 +461,6 @@ function parseQuery(raw) {
     { id: 'runes',   menu: '技能', label: '符文',     src: 'runes',  pick: () => true },
   ];
   const MENUS = [...new Set(PAGES.map(p => p.menu))];
-  PAGES.forEach(p => { p.items = SRC[p.src].items.filter(p.pick); });
   const pageOf = id => PAGES.find(p => p.id === id);
   const pageOfItem = id => PAGES.find(p => p.items.some(s => s.id === id));
 
@@ -716,8 +726,8 @@ function parseQuery(raw) {
     home = nx; homeEditing = false; renderHome();
   });
   addEventListener('beforeunload', e => { if (homeDirty()) { e.preventDefault(); e.returnValue = ''; } });
-  const missingHint = miss => `<div class="drop-hint">找不到 ${miss.map(s => `<b>${DATA_DIR}${s.js}</b>`).join('、')}。<br>
-    ${DATA_DIR ? `請把 ${miss.map(s => `<b>${s.js}</b>、<b>${s.sheet}</b>`).join('、')} 放進 <b>${DATA_DIR}</b> 資料夾。` : `請把這個頁面和 ${miss.map(s => `<b>${s.js}</b>、<b>${s.sheet}</b>`).join('、')} 放在同一個資料夾，<br>或用對應的編輯器存檔一次（會自動產生 .js）。`}</div>`;
+  const missingHint = miss => `<div class="drop-hint">找不到 ${miss.map(s => `<b>${VDIR}${s.js}</b>`).join('、')}${curV && curV.version ? `（版本 ${esc(curV.version)}）` : ''}。<br>
+    請把 ${miss.map(s => `<b>${s.js}</b>、<b>${s.sheet}</b>`).join('、')} 放進 <b>${VDIR || '這個頁面所在的資料夾'}</b>${VERS ? '，並確認 <b>' + DATA_DIR + 'versions.js</b> 裡的資料夾名稱正確' : ''}。</div>`;
 
   /* ---------- 列表頁 ---------- */
   let page = null, src = null, meta = null, allTags = [], selTags = new Set(), isSearch = false;
@@ -790,7 +800,7 @@ function parseQuery(raw) {
     $('crumb').hidden = false;
     $('crumb').innerHTML = `<a href="#/">首頁</a><span>›</span>${esc(p.menu)}<span>›</span><a href="${esc(back)}">${esc(p.label)}</a>${s ? `<span>›</span>${esc(s.name)}` : ''}`;
     $('home').hidden = true; $('app').hidden = true; $('none').hidden = true; $('detail').hidden = false;
-    if (!s) { $('detail').innerHTML = `<p class="empty">找不到這個技能（${esc(id)}），可能已改名或刪除。<a href="${esc(back)}">回到${esc(p.label)}列表</a></p>`; return; }
+    if (!s) { $('detail').innerHTML = `<p class="empty">${curV && curV.version ? `版本 ${esc(curV.version)} 沒有這個技能` : '找不到這個技能'}（${esc(id)}），可能是之後才新增，或已改名、刪除。<a href="${esc(back)}">回到${esc(p.label)}列表</a></p>`; return; }
     document.title = `${s.name} · ${p.label} · LOOTANIA Wiki`;
     const L = SC.levelsOf(s), cap = s.maxLevel || 0;
     const order = p.items.slice().sort((a, b) => firstLv(a) - firstLv(b) || a.id.localeCompare(b.id)), oi = order.indexOf(s);
@@ -875,7 +885,38 @@ function parseQuery(raw) {
   document.addEventListener('mouseout', e => { if (e.target.closest('[data-tip]') && !e.relatedTarget?.closest?.('[data-tip]')) tip.hidden = true; });
   addEventListener('scroll', () => { tip.hidden = true; }, { passive: true });
 
-  route();
+  /* ---------- 版本切換：預設最新版；網址 ?v=資料夾 可指定版本 ---------- */
+  const VL = window.LOOTANIA_VERSIONS;
+  const VERS = VL && Array.isArray(VL.versions) && VL.versions.length ? VL : null;
+  const latestV = VERS ? (VERS.versions.find(v => v.version === VERS.latest) || VERS.versions[0]) : null;
+  let curV = null;
+  const loadScript = src => new Promise(res => { const el = document.createElement('script'); el.src = src;
+    el.onload = () => { el.remove(); res(true); }; el.onerror = () => { el.remove(); res(false); }; document.head.appendChild(el); });
+  function renderVer() {
+    $('verBox').hidden = !VERS; if (!VERS) return;
+    $('ver').innerHTML = VERS.versions.map((v, i) => `<option value="${i}"${v === curV ? ' selected' : ''}>${esc(v.version)}${v === latestV ? '（最新）' : ''}</option>`).join('');
+    const old = curV && curV !== latestV;
+    $('verOld').hidden = !old;
+    if (old) $('verOld').innerHTML = `目前顯示 <b>${esc(curV.version)}</b> 的資料，不是最新版。<button id="verLatest">切換到最新版（${esc(latestV.version)}）</button>`;
+  }
+  async function loadVersion(v) {
+    curV = v; VDIR = DATA_DIR + (v.dir ? String(v.dir).replace(/\/?$/, '/') : '');
+    const inl = window.WIKI_INLINE && window.WIKI_INLINE[v.dir];   // 預覽版：資料直接內嵌
+    for (const s of Object.values(SRC)) { window[s.var] = undefined; if (inl) window[s.var] = inl[s.list]; else await loadScript(VDIR + s.js); }
+    initData(); for (const k of Object.keys(listHash)) delete listHash[k];
+    renderVer(); route();
+  }
+  function setVersion(v) {
+    try { const u = new URL(location.href); if (v === latestV) u.searchParams.delete('v'); else u.searchParams.set('v', v.dir); history.replaceState(null, '', u.href); } catch (e) {}
+    loadVersion(v);
+  }
+  $('ver').addEventListener('change', e => setVersion(VERS.versions[+e.target.value]));
+  $('verOld').addEventListener('click', e => { if (e.target.id === 'verLatest') setVersion(latestV); });
+  (function boot() {
+    if (!VERS) { loadVersion({ version: '', dir: '' }); return; }   // 沒有 versions.js：直接讀資料夾裡的 skills.js（舊結構）
+    let want = null; try { want = new URLSearchParams(location.search).get('v'); } catch (e) {}
+    loadVersion(VERS.versions.find(v => v.dir === want || v.version === want) || latestV);
+  })();
 })();
 </script>
 </body>

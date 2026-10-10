@@ -23,68 +23,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 檢查 Wiki 資料
-        run: |
-          set -euo pipefail
-          test -f wiki/index.html || { echo "::error::找不到 wiki/index.html"; exit 1; }
-          python3 - <<'PY'
-          import json, os, re, sys
-          D = 'wiki/data/'
-          errs, warns = [], []
-          def load_js(name, var, required=True):
-              p = D + name
-              if not os.path.exists(p):
-                  (errs if required else warns).append(f'找不到 {p}'); return None
-              t = open(p, encoding='utf-8').read()
-              m = re.search(r'window\.' + var + r'\s*=\s*', t)
-              if not m: errs.append(f'{p}: 找不到 window.{var} =（檔案格式不對，請用編輯器重新存檔）'); return None
-              body = t[m.end():].rstrip().rstrip(';')
-              try: return json.loads(body)
-              except Exception as e: errs.append(f'{p}: 內容不是正確的 JSON（{e}）'); return None
-          def check(d, name, key):
-              if d is None: return
-              items = d.get(key)
-              if not isinstance(items, list): errs.append(f'{name}: 找不到 {key} 陣列'); return
-              ids = [x.get('id') for x in items]
-              dup = sorted({i for i in ids if ids.count(i) > 1})
-              if dup: errs.append(f'{name}: 編號重複 {", ".join(map(str, dup))}')
-              for x in items:
-                  if not x.get('name'): errs.append(f'{name}: {x.get("id")} 沒有名稱')
-              sh = d.get('iconSheet')
-              if sh:
-                  if not os.path.exists(D + sh.get('file', '')): errs.append(f'{name}: 找不到圖示表 {D}{sh.get("file")}')
-                  bad = [x['id'] for x in items if isinstance(x.get('icon'), int) and not (0 <= x['icon'] < sh.get('count', 0))]
-                  if bad: errs.append(f'{name}: 圖示編號超出圖示表範圍 {", ".join(bad)}')
-              print(f'{name}: {len(items)} 筆')
-          sk = load_js('skills.js', 'LOOTANIA_SKILLS'); check(sk, 'skills.js', 'skills')
-          rn = load_js('runes.js', 'LOOTANIA_RUNES'); check(rn, 'runes.js', 'runes')
-          # 網站頁面讀 .js，天賦模擬讀 .json：檢查兩者內容一致（避免只更新其中一個）
-          for js, jn in ((sk, 'skills.json'), (rn, 'runes.json')):
-              if js is not None and not os.path.exists(D + jn): warns.append(f'找不到 {D}{jn}（網站可正常顯示，但天賦模擬讀不到這份資料）')
-              if js is not None and os.path.exists(D + jn):
-                  try:
-                      if json.load(open(D + jn, encoding='utf-8')) != js: errs.append(f'{jn} 和 {jn[:-5]}.js 內容不一致，請兩個檔案一起更新（或只放 .js）')
-                  except Exception as e: errs.append(f'{D}{jn}: 無法讀取（{e}）')
-          h = load_js('home.js', 'LOOTANIA_HOME', required=False)
-          if h is not None:
-              for k in ('start', 'end'):
-                  if h.get(k) and not re.fullmatch(r'\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?', h[k]): errs.append(f'home.js: {k} 格式應為 YYYY-MM-DD 或 YYYY-MM-DDTHH:MM')
-              if h.get('start') and h.get('end'):
-                  st = h['start'] if 'T' in h['start'] else h['start'] + 'T00:00'
-                  en = h['end'] if 'T' in h['end'] else h['end'] + 'T23:59'
-                  if en < st: errs.append('home.js: 結束時間早於開始時間')
-          for w in warns: print(f'::warning::{w}')
-          for e in errs: print(f'::error::{e}')
-          sys.exit(1 if errs else 0)
-          PY
-
       - name: 組合網站
         run: |
           set -euo pipefail
+          test -f wiki/index.html || { echo "::error::找不到 wiki/index.html"; exit 1; }
           mkdir -p _site
           cp -a wiki/. _site/
           touch _site/.nojekyll
-          echo "網站內容："; find _site -maxdepth 2 | sort
+
+      - name: 檢查資料並產生 versions.json
+        run: python3 tools/check_data.py _site/data
+
+      - name: 網站內容
+        run: find _site -maxdepth 3 | sort
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
