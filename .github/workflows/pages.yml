@@ -56,13 +56,23 @@ jobs:
                   bad = [x['id'] for x in items if isinstance(x.get('icon'), int) and not (0 <= x['icon'] < sh.get('count', 0))]
                   if bad: errs.append(f'{name}: 圖示編號超出圖示表範圍 {", ".join(bad)}')
               print(f'{name}: {len(items)} 筆')
-          check(load_js('skills.js', 'LOOTANIA_SKILLS'), 'skills.js', 'skills')
-          check(load_js('runes.js', 'LOOTANIA_RUNES'), 'runes.js', 'runes')
+          sk = load_js('skills.js', 'LOOTANIA_SKILLS'); check(sk, 'skills.js', 'skills')
+          rn = load_js('runes.js', 'LOOTANIA_RUNES'); check(rn, 'runes.js', 'runes')
+          # 網站頁面讀 .js，天賦模擬讀 .json：檢查兩者內容一致（避免只更新其中一個）
+          for js, jn in ((sk, 'skills.json'), (rn, 'runes.json')):
+              if js is not None and not os.path.exists(D + jn): warns.append(f'找不到 {D}{jn}（網站可正常顯示，但天賦模擬讀不到這份資料）')
+              if js is not None and os.path.exists(D + jn):
+                  try:
+                      if json.load(open(D + jn, encoding='utf-8')) != js: errs.append(f'{jn} 和 {jn[:-5]}.js 內容不一致，請兩個檔案一起更新（或只放 .js）')
+                  except Exception as e: errs.append(f'{D}{jn}: 無法讀取（{e}）')
           h = load_js('home.js', 'LOOTANIA_HOME', required=False)
           if h is not None:
               for k in ('start', 'end'):
-                  if h.get(k) and not re.fullmatch(r'\d{4}-\d{2}-\d{2}', h[k]): errs.append(f'home.js: {k} 日期格式應為 YYYY-MM-DD')
-              if h.get('start') and h.get('end') and h['end'] < h['start']: errs.append('home.js: 結束日期早於開始日期')
+                  if h.get(k) and not re.fullmatch(r'\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?', h[k]): errs.append(f'home.js: {k} 格式應為 YYYY-MM-DD 或 YYYY-MM-DDTHH:MM')
+              if h.get('start') and h.get('end'):
+                  st = h['start'] if 'T' in h['start'] else h['start'] + 'T00:00'
+                  en = h['end'] if 'T' in h['end'] else h['end'] + 'T23:59'
+                  if en < st: errs.append('home.js: 結束時間早於開始時間')
           for w in warns: print(f'::warning::{w}')
           for e in errs: print(f'::error::{e}')
           sys.exit(1 if errs else 0)
