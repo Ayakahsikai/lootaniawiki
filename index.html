@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="LOOTANIA 遊戲資料站：技能、符文與賽季資訊。">
+<title>LOOTANIA Wiki</title>
+<style>
+/* LOOTANIA Wiki — 參考 poedb 的資料站風格：黑底、細框面板、表格列表、遊戲提示框 */
+:root{
+  --bg:#050505; --panel:#121212; --panel-head:#1b1b1b; --row:#0d0d0d; --row-alt:#111;
+  --line:#2a2a2a; --line-2:#3a3a3a;
+  --text:#c8c8c8; --muted:#7d7d7d; --link:#dcdcdc; --white:#f2f2f2;
+  --accent:#c9a35b;            /* 品牌金 */
+  --unique:#c3732f;            /* 裝備名稱（類似傳奇橘） */
+  --mod:#8f8fff;               /* 秘藏能力（類似詞綴藍） */
+  --mod-text:#b4b4ff;
+  --warn:#e2725b;
+  --f-ui:"Noto Sans TC",system-ui,-apple-system,"Segoe UI","Microsoft JhengHei",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 var(--f-ui)}
+a{color:var(--link);text-decoration:none}
+a:hover{color:#fff;text-decoration:underline}
+button,select,input{font:13px var(--f-ui);color:var(--text);background:#0e0e0e;border:1px solid var(--line-2);border-radius:3px;padding:5px 9px}
+button{cursor:pointer}button:hover{border-color:#555;color:#fff}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:1px solid var(--accent);outline-offset:1px}
+[hidden]{display:none!important}
+
+/* ---- 導覽列 ---- */
+.nav{position:sticky;top:0;z-index:20;background:#0f0f0f;border-bottom:1px solid var(--line)}
+.nav-in{max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:4px;padding:0 14px;height:46px}
+.brand{font-weight:700;color:var(--accent);letter-spacing:.04em;margin-right:14px;white-space:nowrap}
+.brand:hover{text-decoration:none;color:#e0bd72}
+.brand small{color:var(--muted);font-weight:400;margin-left:4px}
+.menu{display:flex;align-items:stretch;height:100%}
+.menu>li{list-style:none;position:relative}
+.menu>li>a,.menu>li>span{display:flex;align-items:center;height:100%;padding:0 12px;color:var(--text)}
+.menu>li>a:hover,.menu>li:hover>span,.menu>li:focus-within>span{background:#1a1a1a;color:#fff;text-decoration:none}
+.menu>li.cur>a,.menu>li.cur>span{color:#fff;box-shadow:inset 0 -2px 0 var(--accent)}
+.menu .caret{font-size:9px;margin-left:5px;opacity:.6}
+.drop{display:none;position:absolute;left:0;top:100%;min-width:200px;background:#141414;border:1px solid var(--line-2);border-top:0;padding:6px 0;margin:0;columns:2;column-gap:0;width:300px}
+.menu>li:hover .drop,.menu>li:focus-within .drop{display:block}
+.drop li{list-style:none;break-inside:avoid}
+.drop a{display:block;padding:4px 14px;font-size:13px}
+.drop a:hover{background:#1f1f1f;text-decoration:none}
+.drop a small{color:var(--muted);margin-left:4px}
+.drop .off{display:block;padding:4px 14px;font-size:13px;color:#555}
+.nav-search{margin-left:auto;display:flex}
+.nav-search input{width:220px;border-radius:3px 0 0 3px}
+.nav-search button{border-left:0;border-radius:0 3px 3px 0}
+@media (max-width:720px){.nav-in{height:auto;flex-wrap:wrap;padding:6px 10px}.menu{height:36px}.nav-search{margin-left:0;width:100%;padding-bottom:6px}.nav-search input{flex:1;width:auto}}
+
+/* ---- 版面 ---- */
+main{max-width:1280px;margin:0 auto;padding:14px 14px 60px}
+.crumb{font-size:12px;color:var(--muted);margin:2px 0 10px}
+.crumb a{color:var(--muted)}.crumb a:hover{color:#fff}
+.crumb span{margin:0 6px;opacity:.6}
+h1{font-size:20px;font-weight:600;color:var(--white);margin:0 0 4px}
+.lead{color:var(--muted);font-size:13px;margin:0 0 14px}
+.notice{border:1px solid var(--warn);color:#f1b5a7;background:rgba(226,114,91,.07);padding:10px 12px;border-radius:3px;white-space:pre-line}
+
+/* 面板（poedb 的 card） */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:3px;margin-bottom:14px}
+.panel>h2{margin:0;padding:7px 12px;background:var(--panel-head);border-bottom:1px solid var(--line);font-size:14px;font-weight:600;color:var(--white);display:flex;align-items:center;gap:8px}
+.panel>h2 .n{color:var(--muted);font:12px var(--f-mono);font-weight:400}
+.panel>h2 a{color:var(--white)}
+.panel .body{padding:10px 12px}
+.cols{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;align-items:start}
+.cols .panel{margin:0}
+.links{list-style:none;margin:0;padding:6px 0}
+.links li a,.links li .off{display:flex;align-items:center;gap:8px;padding:4px 12px;font-size:13px}
+.links li a:hover{background:#191919;text-decoration:none}
+.links li .off{color:#555}
+.links .ico{width:22px;height:22px;flex:none;border:1px solid var(--line-2);border-radius:2px;background:#0a0a0a;display:grid;place-items:center;font-size:11px;color:var(--muted);overflow:hidden}
+.links .ico img{width:100%;height:100%;object-fit:contain}
+.links .cnt{margin-left:auto;color:var(--muted);font:12px var(--f-mono)}
+
+/* ---- 裝備列表 ---- */
+.toc{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;margin:0 0 12px;padding:8px 12px;background:var(--panel);border:1px solid var(--line);border-radius:3px}
+.toc a{color:var(--link)}.toc a .n{color:var(--muted);font:12px var(--f-mono);margin-left:2px}
+.toc a.on{color:var(--accent)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.filters input[type=search]{flex:1 1 280px;min-width:0}
+.filters label{display:flex;gap:5px;align-items:center;font-size:13px;color:var(--muted);cursor:pointer}
+.filters .count{margin-left:auto;color:var(--muted);font-size:12px}
+table.items{width:100%;border-collapse:collapse}
+table.items td{border-top:1px solid var(--line);padding:8px 10px;vertical-align:top}
+table.items tr:nth-child(even) td{background:var(--row-alt)}
+table.items tr:target td,table.items tr.flash td{background:#1c1810}
+td.ic{width:76px}
+.icon{width:60px;height:60px;border:1px solid var(--line-2);border-radius:2px;background:#0a0a0a;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.icon img{max-width:100%;max-height:100%;object-fit:contain;image-rendering:pixelated}
+.icon span{font-size:11px;color:var(--muted);text-align:center;padding:2px}
+.it-name{color:var(--unique);font-weight:600;font-size:14.5px}
+.it-name:hover{color:#e08a40}
+.it-id{color:#555;font:11px var(--f-mono);margin-left:8px}
+.it-id:hover{color:var(--muted)}
+.ln{font-size:13px}
+.ln .k{color:var(--muted)}
+.ln b{color:var(--white);font-weight:400}
+.ln .unk{color:var(--warn)}
+.mods{margin-top:3px}
+.mods div{color:var(--mod);font-size:13px}
+.mods .tx{color:var(--mod-text);font-style:italic}
+.it-foot{margin-top:4px;font-size:12px;color:var(--muted)}
+.badge{display:inline-block;font-size:11px;padding:0 5px;border-radius:2px;border:1px solid var(--warn);color:var(--warn);margin-right:6px;line-height:16px}
+mark{background:rgba(201,163,91,.33);color:inherit;border-radius:2px}
+.empty{color:var(--muted);padding:24px 0;text-align:center}
+@media (max-width:560px){td.ic{width:62px}.icon{width:48px;height:48px}}
+
+/* ---- 遊戲提示框（滑過名稱時顯示） ---- */
+.itip{position:fixed;z-index:50;pointer-events:none;width:300px;background:rgba(8,8,8,.97);border:1px solid #6e4a26;box-shadow:0 4px 18px rgba(0,0,0,.7);font-size:13px;text-align:center}
+.itip .h{padding:6px 10px;background:linear-gradient(#2a1a0c,#1a1008);border-bottom:1px solid #6e4a26;color:var(--unique);font-weight:700;font-size:15px}
+.itip .h small{display:block;color:#a8865c;font-weight:400;font-size:12px}
+.itip .s{padding:6px 10px}
+.itip .s+.s{border-top:1px solid #3d2a17}
+.itip .k{color:var(--muted)}.itip b{color:var(--white);font-weight:400}
+.itip .unk{color:var(--warn)}
+.itip .m{color:var(--mod)}.itip .tx{color:var(--mod-text);font-style:italic}
+.itip .v{color:var(--warn);font-size:12px}
+
+/* ---- 技能 ---- */
+:root{--sk-tag:#e8a33a;--sk-name:#7fc4ff}
+.sk-name{color:var(--sk-name);font-weight:600;font-size:14.5px}
+.sk-name:hover{color:#a9d8ff}
+.sk-tags{font-size:12.5px;margin:1px 0 2px}
+.sk-tag,.itip .sk-tag{color:var(--sk-tag);font-weight:400}
+.sk-compat{color:var(--warn)}
+.sk-desc{font-size:13px;color:var(--text);margin-top:3px}
+.sk-eff{font-size:13px;color:var(--mod);margin-top:3px}
+.sk-eff .k{color:var(--muted);font:12px var(--f-mono);margin-right:4px}
+.sk-lvl{display:flex;flex-wrap:wrap;gap:0 10px;align-items:baseline}
+.sk-lvl .k{min-width:40px}
+.sk-req{color:var(--white);font-size:12.5px}
+.sk-ef{color:var(--mod)}
+.sk-more{margin-top:5px;font-size:12.5px}
+.sk-more summary{cursor:pointer;color:var(--muted);width:max-content}
+.sk-more summary:hover{color:#fff}
+.sk-lvt{border-collapse:collapse;margin-top:6px;font-size:12.5px;min-width:min(520px,100%)}
+.sk-lvt th,.sk-lvt td{border:1px solid var(--line);padding:3px 8px;text-align:center;white-space:nowrap}
+.sk-lvt th{background:var(--panel-head);color:var(--muted);font-weight:400}
+.sk-lvt td.l{text-align:left;white-space:normal;color:var(--mod)}
+.sk-wrap{overflow-x:auto}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chips button{padding:2px 8px;font-size:12px;border-radius:999px}
+.chips button.on{border-color:var(--sk-tag);color:var(--sk-tag);background:rgba(232,163,58,.08)}
+/* 技能提示框：模仿遊戲的藍紫半透明視窗 */
+.sk-tip{width:340px;background:rgba(40,42,92,.96);border:1px solid #8a8fd8;border-radius:4px;box-shadow:0 6px 22px rgba(0,0,0,.6);color:#f2f2f2;font-size:13px;line-height:1.5;padding:8px 10px 10px;text-align:left}
+.sk-th{text-align:center;font-weight:700;font-size:16px;padding:2px 0 4px}
+.sk-tip .sk-tags{text-align:center;margin:0 0 6px}
+.sk-top{display:flex;gap:10px;align-items:flex-start}
+.sk-ic{width:72px;height:72px;flex:none;background:#e9e9f4;border:2px solid #fff;border-radius:3px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.sk-ic img{max-width:100%;max-height:100%;object-fit:contain;image-rendering:pixelated}
+.sk-ic span{color:#555;font-size:11px}
+.sk-info{flex:1;min-width:0}
+.sk-tip .sk-desc{color:#f2f2f2;margin-top:2px}
+.sk-mut{color:#aab}
+.sk-lv{margin-top:6px}
+.sk-lvh{color:#d8dcff}
+.sk-ver{margin-top:6px;color:#ffb3a3;font-size:12px}
+.sk-spr{display:block;width:100%;height:100%;background-repeat:no-repeat;image-rendering:pixelated}
+.itip.sk{width:auto;background:none;border:0;box-shadow:none}
+.sk-src{margin-top:7px;padding-top:6px;border-top:1px solid rgba(160,165,230,.35);color:#c9f0c0}
+.sk-src span{display:block;color:#aab0e8;font-size:12px}
+.ln b.sk-srcv{color:#9fdc92}
+
+/* 下拉選單：單欄，樣式同遊戲資料站 */
+.drop{columns:1;width:auto;min-width:150px;padding:4px 0}
+.drop a,.drop .off{padding:7px 16px;font-size:14px;white-space:nowrap}
+.drop a.on{color:var(--accent)}
+.drop .off small{color:#444;margin-left:6px;font-size:12px}
+.menu>li>span{cursor:pointer;user-select:none}
+.menu>li.open .drop{display:block}
+.info .body{padding:14px 16px}
+.info h2{display:flex;align-items:center;gap:10px}
+.info .ss{font:12px var(--f-ui);font-weight:400;padding:1px 8px;border-radius:999px;border:1px solid var(--line-2);color:var(--muted)}
+.info .ss.on{color:#8fd18f;border-color:#2f5a2f}.info .ss.end{color:var(--warn);border-color:#6a3328}.info .ss.soon{color:var(--accent);border-color:#5a4826}
+.info-edit{margin-left:auto;font-size:12px;padding:3px 10px}
+.info-range{color:var(--muted);font-size:13px;margin-bottom:10px}
+.info-md{line-height:1.85;color:var(--text)}
+.info-md h3{font-size:15px;color:var(--white);margin:14px 0 6px;padding-left:8px;border-left:3px solid var(--accent)}
+.info-md h3:first-child{margin-top:0}
+.info-md p{margin:0 0 10px}.info-md ul{margin:0 0 10px;padding-left:20px}.info-md li{margin:2px 0}
+.info-md b{color:var(--white)}.info-md a{color:var(--accent)}
+.info-note{color:var(--accent);font-size:13px;margin:0 0 10px}
+.info-upd{margin-top:10px;color:var(--muted);font-size:12px;text-align:right}
+.info-form label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);margin-bottom:10px}
+.info-form input,.info-form textarea{width:100%;color:var(--text)}
+.info-form textarea{font:13px/1.7 var(--f-ui);resize:vertical;background:#0e0e0e;border:1px solid var(--line-2);border-radius:3px;padding:8px 10px}
+.info-dates{display:flex;gap:12px}.info-dates label{flex:1}
+.info-tip{font-size:12px;color:var(--muted);margin:-4px 0 10px}.info-tip code{font:11px var(--f-mono);background:#1a1a1a;padding:1px 5px;border-radius:3px;color:var(--text)}
+.ed-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-bottom:8px}
+.ed-bar .lbl{font-size:13px;color:var(--muted)}
+.ed-bar .quick{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:12px;color:var(--muted)}
+.ed-bar .quick button{font-size:12px;padding:2px 8px;border-radius:999px}
+.ed-bar .tools{margin-left:auto;display:flex;gap:4px}.ed-bar .tools button{font-size:12px;padding:2px 9px}
+.secs{display:flex;flex-direction:column;gap:10px;margin-bottom:8px}
+.sec{border:1px solid var(--line-2);border-radius:4px;padding:10px;background:#0b0b0b}
+.sec-h{display:flex;gap:4px;margin-bottom:6px}
+.sec-t{flex:1;min-width:0;font-weight:600;color:var(--white)}
+.ib{padding:2px 8px;font-size:12px;color:var(--muted)}.ib:disabled{opacity:.3;cursor:default}
+.ib.del:hover,.ib.armed{color:var(--warn);border-color:var(--warn)}
+.sec-n{width:100%;font:13px/1.7 var(--f-ui);resize:vertical;background:#0e0e0e;border:1px solid var(--line);border-radius:3px;padding:5px 9px;color:var(--text);margin-bottom:6px}
+.sec-items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.sec-items li{display:flex;align-items:center;gap:6px}
+.sec-items .dot{color:var(--accent);width:10px;text-align:center}
+.sec-items input{flex:1;min-width:0}
+.add-item{margin-top:6px;font-size:12px;padding:2px 10px;border-style:dashed;color:var(--muted)}
+.info-tip kbd{font:11px var(--f-mono);padding:0 4px;border:1px solid var(--line-2);border-radius:3px;color:var(--text)}
+.info-pv-h{font-size:12px;color:var(--muted);margin-bottom:4px}
+.info-pv{border:1px dashed var(--line-2);border-radius:3px;padding:10px 12px;min-height:60px;margin-bottom:12px}
+.info-form .row{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.info-msg{margin-right:auto;color:var(--warn);font-size:13px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#1a1408;font-weight:600}button.primary:hover{color:#000}
+@media (max-width:560px){.info-dates{flex-direction:column;gap:0}}
+.dt{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;align-items:start}
+.dt-main{min-width:0}
+.dt-head{display:flex;align-items:center;gap:14px;margin:4px 0 14px;flex-wrap:wrap}
+.dt-ic{width:72px;height:72px}.dt-ic .sk-spr{width:72px;height:72px}
+.dt-tt{flex:1;min-width:0}.dt-tt h1{margin:0 0 4px;font-size:24px;color:var(--white)}
+.dt-nav{display:flex;gap:6px;font-size:13px}.dt-nav a{border:1px solid var(--line-2);border-radius:3px;padding:3px 10px;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.dt-nav a:hover{text-decoration:none;border-color:#555}
+.dt-info{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;margin:0}
+.dt-info dt{color:var(--muted)}.dt-info dd{margin:0;color:var(--white)}.dt-info small{color:var(--muted);margin-left:2px}
+.dt-src{color:#8fd18f}.dt-chip{display:inline-block;font-size:12px;border:1px solid var(--line-2);border-radius:999px;padding:0 8px;margin:0 4px 2px 0;color:var(--text)}
+.dt-desc{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);line-height:1.8}
+.dt-eff div{display:flex;gap:10px;color:var(--mod-text);line-height:1.8}.dt-eff .k{color:var(--muted);min-width:44px;font:12px/1.8 var(--f-mono)}
+.dt-hint{font-weight:400;color:var(--muted);font-size:12px;margin-left:10px}
+.dt-lvt{width:100%;margin:0}.dt-lvt tbody tr{cursor:pointer}.dt-lvt tbody tr:hover td{background:#1a1a1a}
+.dt-lvt tr.on td{background:#2a2410!important;color:var(--white)}
+.dt-lvt tr.over td{color:var(--muted)}.dt-lvt tr.over td.l{color:#9a9ad8}
+.dt-lvt tr.sep td{background:var(--panel-head);color:var(--accent);font-size:12px;cursor:default;text-align:left}
+.dt-side{position:relative}.dt-sticky{position:sticky;top:60px;display:flex;flex-direction:column;gap:8px}
+.dt-lvsel{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}.dt-lvsel input{flex:1;padding:0}.dt-lvsel b{color:var(--white);min-width:48px;text-align:right;font-family:var(--f-mono)}
+#dtTip .sk-tip{width:100%}
+td.ic .icon{cursor:pointer}
+@media (max-width:900px){.dt{grid-template-columns:1fr}.dt-side{order:-1}.dt-sticky{position:static}}
+.dt-runes .body{padding:10px 12px}
+.rn-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.rn-list a{display:flex;align-items:center;gap:10px;padding:4px 6px;border-radius:3px;color:var(--text)}
+.rn-list a:hover{background:#1a1a1a;text-decoration:none;color:#fff}
+.rn-list .icon{width:36px;height:36px;flex:none}.rn-list .icon .sk-spr{width:36px;height:36px}
+.rn-t{display:flex;flex-direction:column;min-width:0;line-height:1.35}.rn-t b{font-weight:500;color:var(--white)}.rn-t small{color:#e2725b;font-size:11.5px}
+.it-id{display:none}   /* Wiki 不顯示編號（連結仍用編號） */
+.drop-hint{border:1px dashed var(--line-2);border-radius:4px;padding:24px;color:var(--muted);line-height:1.9;margin-top:10px}
+.drop-hint b{color:var(--white)}
+</style>
+</head>
+<body>
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="#/">LOOTANIA <small>Wiki</small></a>
+    <ul class="menu" id="menu"></ul>
+  </div>
+</header>
+<main>
+  <div class="crumb" id="crumb"></div>
+  <div id="home" hidden></div>
+  <div id="app" hidden>
+    <div class="filters">
+      <input type="search" id="q" placeholder="篩選名稱、說明、效果、獲得方式（空格＝且，|＝或，-詞＝排除）" aria-label="篩選">
+      <select id="weapon" aria-label="武器"><option value="">全部武器</option></select>
+      <select id="sort" aria-label="排序">
+        <option value="lv">需求等級 低→高</option>
+        <option value="name">名稱</option>
+        <option value="id">編號</option>
+      </select>
+      <label><input type="checkbox" id="onlyVerify"> 只看待確認</label>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="chips" id="tags" aria-label="標籤（可複選，需全部符合）" style="margin:-4px 0 12px"></div>
+    <div id="list"></div>
+  </div>
+  <div id="detail" hidden></div>
+  <div id="none" hidden></div>
+</main>
+<div class="itip sk" id="tip" hidden></div>
+<script>
+/* 技能顯示共用：技能列表與技能編輯器的預覽都用這支，確保兩邊顯示一致 */
+window.SkillCard = (() => {
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const num = v => (typeof v === 'number' && isFinite(v)) ? String(+v.toFixed(2)) : (v == null || v === '' ? '?' : String(v));
+  const kindLabel = (s, meta) => ((meta.skillKinds || []).find(k => k.id === s.kind) || {}).label || s.kind || '';
+  const isRune = s => s.kind === 'rune';
+  // 符文沒有等級：效果模板＋一組數值（values）
+  const runeEffect = s => s.effect ? String(s.effect).replace(/\{(\d+)\}/g, (_, i) => num((s.values || [])[+i])) : (s.desc || '');   // 舊資料只有說明時，用說明當效果
+  // 效果模板：{0}、{1}… 依序換成該等級的數值；數值缺少時顯示 ?
+  function effectAt(s, row) {
+    const t = s.effect || ''; if (!t) return '';
+    const v = (row && row.v) || [];
+    return t.replace(/\{(\d+)\}/g, (_, i) => num(v[+i]));
+  }
+  const slots = t => { let n = 0; String(t || '').replace(/\{(\d+)\}/g, (_, i) => { n = Math.max(n, +i + 1); }); return n; };
+  // 「Lv.10 | 力量 35」
+  function reqText(row, meta) {
+    const r = (row && row.req) || {}, out = [];
+    if (r.level != null) out.push(`Lv.${num(r.level)}`);
+    for (const k of meta.requirements || []) { if (k === 'level' || r[k] == null || r[k] === 0) continue; out.push(`${meta.requirementLabels[k] || k} ${num(r[k])}`); }
+    return out.join(' | ') || '無';
+  }
+  const tagsHTML = list => (list || []).map(t => `<b class="sk-tag">【${esc(t)}】</b>`).join('');
+  const weaponsText = s => (s.weapons || []).join('/');
+  const descHTML = s => esc(s.desc || '').replace(/\n/g, '<br>');
+  const levelsOf = s => (s.levels || []).slice().sort((a, b) => (a.lv || 0) - (b.lv || 0));
+  // 圖示表（一張大圖切成格子，技能的 icon 填格子編號，0 起算、由左到右、由上到下）
+  let SHEET = null;   // { src, cell, cols, rows }
+  function setSheet(sh) { SHEET = sh && sh.src && sh.cols > 0 ? { ...sh, rows: Math.max(1, sh.rows || Math.ceil((sh.count || sh.cols) / sh.cols)) } : null; }
+  function sprite(i) {
+    if (!SHEET || !(i >= 0)) return '';
+    const { cols, rows } = SHEET, c = i % cols, r = Math.floor(i / cols);
+    return `<i class="sk-spr" style="background-image:url('${esc(SHEET.src)}');background-size:${cols * 100}% ${rows * 100}%;background-position:${cols > 1 ? c / (cols - 1) * 100 : 0}% ${rows > 1 ? r / (rows - 1) * 100 : 0}%"></i>`;
+  }
+  // 圖示：數字＝圖示表的格子；文字＝單張圖片路徑（舊格式）；沒有就顯示種類文字
+  function iconHTML(s, meta) {
+    if (typeof s.icon === 'number' && SHEET) return sprite(s.icon);
+    if (typeof s.icon === 'string' && s.icon) return `<img src="${esc(s.icon)}" alt="" loading="lazy">`;
+    return `<span>${esc(kindLabel(s, meta))}</span>`;
+  }
+  // 遊戲內提示框（模仿遊戲：標籤、等級上限、需求武器、說明、現在/下一等級）
+  function tip(s, meta, opt = {}) {
+    const L = levelsOf(s), cur = L[opt.idx || 0], nxt = L[(opt.idx || 0) + 1];
+    const ic = iconHTML(s, meta);
+    const head = isRune(s) ? `符文：${esc(s.name || '（未命名）')}` : esc(s.name || '（未命名）');
+    const info = [];
+    if (!isRune(s) && s.maxLevel) info.push(`[等級上限:${num(s.maxLevel)}]`);
+    if ((s.weapons || []).length) info.push(`需求武器: ${esc(weaponsText(s))}`);
+    const lvBlock = (r, label) => r ? `<div class="sk-lv"><div class="sk-lvh">[${label}:${num(r.lv)}] 需求：${esc(reqText(r, meta))}</div>${s.effect ? `<div>${esc(effectAt(s, r))}</div>` : ''}</div>` : '';
+    return `<div class="sk-tip">
+      <div class="sk-th">${head}</div>
+      ${(s.tags || []).length ? `<div class="sk-tags">${tagsHTML(s.tags)}</div>` : ''}
+      <div class="sk-top"><div class="sk-ic">${ic}</div><div class="sk-info">${info.map(x => `<div>${x}</div>`).join('')}<div class="sk-desc">${isRune(s) ? (esc(runeEffect(s)) || '<span class="sk-mut">（尚無效果）</span>') : (descHTML(s) || '<span class="sk-mut">（尚無說明）</span>')}</div>
+      ${(s.compatTags || []).length ? `<div>相容標籤：<span class="sk-compat">${(s.compatTags).map(t => `【${esc(t)}】`).join('')}</span></div>` : ''}</div></div>
+      ${isRune(s) ? '' : lvBlock(cur, '現在等級') + lvBlock(nxt, '下一等級')}
+      ${s.source ? `<div class="sk-src"><span>獲得方式</span>${esc(s.source).replace(/\n/g, '<br>')}</div>` : ''}
+      ${(s.verify || []).length ? `<div class="sk-ver">待確認：${esc(s.verify.join('、'))}</div>` : ''}
+    </div>`;
+  }
+  // 全部等級表
+  function levelTable(s, meta) {
+    const L = levelsOf(s); if (!L.length) return '';
+    const keys = (meta.requirements || []).filter(k => k !== 'level' && L.some(r => r.req && r.req[k]));
+    const n = slots(s.effect);
+    return `<table class="sk-lvt"><thead><tr><th>等級</th><th>需求等級</th>${keys.map(k => `<th>${esc(meta.requirementLabels[k] || k)}</th>`).join('')}<th>效果</th></tr></thead><tbody>${
+      L.map(r => `<tr><td>${num(r.lv)}</td><td>${r.req && r.req.level != null ? num(r.req.level) : '—'}</td>${keys.map(k => `<td>${r.req && r.req[k] ? num(r.req[k]) : '—'}</td>`).join('')}<td class="l">${n ? esc(effectAt(s, r)) : '—'}</td></tr>`).join('')}</tbody></table>`;
+  }
+  function hl(s, terms) { let h = esc(s); for (const t of terms || []) { if (t) h = h.split(esc(t)).join(`<mark>${esc(t)}</mark>`); } return h; }
+  // 列表的一列（poedb 式）
+  function row(s, meta, terms) {
+    // 摘要只列 Lv.1 與等級上限那一級（超過上限的加成等級在「全部等級」裡看）
+    const L = levelsOf(s), first = L[0], inCap = L.filter(r => !s.maxLevel || r.lv <= s.maxLevel), last = inCap[inCap.length - 1] || first;
+    const ic = iconHTML(s, meta);
+    const lines = [];
+    if (!isRune(s) && s.maxLevel) lines.push(`<span class="k">等級上限:</span> <b>${num(s.maxLevel)}</b>`);
+    if ((s.weapons || []).length) lines.push(`<span class="k">需求武器:</span> <b>${hl(weaponsText(s), terms)}</b>`);
+    if ((s.compatTags || []).length) lines.push(`<span class="k">相容標籤:</span> <span class="sk-compat">${s.compatTags.map(t => `【${hl(t, terms)}】`).join('')}</span>`);
+    if (s.source) lines.push(`<span class="k">獲得方式:</span> <b class="sk-srcv">${hl(s.source, terms).replace(/\n/g, '<br>')}</b>`);
+    const lvLine = r => `<div class="sk-lvl"><span class="k">Lv.${num(r.lv)}</span><span class="sk-req">${esc(reqText(r, meta))}</span>${s.effect ? `<span class="sk-ef">${hl(effectAt(s, r), terms)}</span>` : ''}</div>`;
+    const eff = isRune(s) ? (runeEffect(s) ? `<div class="sk-eff">${hl(runeEffect(s), terms)}</div>` : '')
+      : first ? `<div class="sk-eff">${lvLine(first)}${last !== first ? lvLine(last) : ''}</div>` : '';
+    const ver = (s.verify || []).length ? `<div><span class="badge">待確認</span>${esc(s.verify.join('、'))}</div>` : '';
+    const foot = [ver, s.note ? `<div>${esc(s.note)}</div>` : ''].join('');
+    return `<tr id="${esc(s.id)}"><td class="ic"><div class="icon">${ic}</div></td><td>
+      <a class="sk-name" href="#${esc(s.id)}" data-tip="${esc(s.id)}">${hl(s.name, terms)}</a><a class="it-id" href="#${esc(s.id)}" title="此技能的連結">${esc(s.id)}</a>
+      ${(s.tags || []).length ? `<div class="sk-tags">${(s.tags).map(t => `<b class="sk-tag">【${hl(t, terms)}】</b>`).join('')}</div>` : ''}
+      ${lines.map(x => `<div class="ln">${x}</div>`).join('')}
+      ${s.desc && !isRune(s) ? `<div class="sk-desc">${hl(s.desc, terms).replace(/\n/g, '<br>')}</div>` : ''}${eff}
+      ${L.length > 1 ? `<details class="sk-more"><summary>全部等級（${L.length}）</summary>${levelTable(s, meta)}</details>` : ''}
+      ${foot ? `<div class="it-foot">${foot}</div>` : ''}</td></tr>`;
+  }
+  // 天賦模擬器用：技能 → 天賦條件 id（標籤經 meta.skillTags.cond 轉換，武器群組展開成武器分類）
+  function talentConds(s, meta) {
+    const tagCond = new Map((meta.skillTags || []).map(t => [t.id, t.cond]));
+    const skill = [...new Set((s.tags || []).map(t => tagCond.get(t)).filter(Boolean))];
+    const wg = meta.weaponGroups || {}, wt = new Set((meta.weaponTypes || []).map(w => w.id));
+    const weapons = [...new Set((s.weapons || []).flatMap(w => wg[w] || (wt.has(w) ? [w] : [])))];
+    return { skill, weapons };
+  }
+  return { esc, num, runeEffect, effectAt, slots, reqText, tip, row, levelTable, talentConds, kindLabel, levelsOf, setSheet, sprite, iconHTML };
+})();
+
+</script>
+<script>
+// 預設定義：skills.json 沒有 meta 時使用（技能編輯器存檔時會把 meta 一起寫進 skills.json）
+const DEFAULT_META = {
+  requirements: ['level', 'str', 'dex', 'int', 'luk'],
+  requirementLabels: { level: '角色等級', str: '力量', dex: '敏捷', int: '智力', luk: '幸運' },
+  weaponTypes: ['單手劍', '雙手劍', '單手斧', '雙手斧', '單手棍', '雙手棍', '短劍', '拳套', '槍矛', '弓弩', '短杖', '長杖'].map(id => ({ id })),
+  skillKinds: [{ id: 'skill', label: '主動技能', prefix: 'sk' }, { id: 'passive', label: '被動技能', prefix: 'sk' }, { id: 'rune', label: '符文', prefix: 'rn' }],
+  skillTags: [['攻擊','攻擊'],['法術','法術'],['近戰','近戰'],['投射物','投射物'],['投擲','投擲'],['召喚物','召喚物'],['血魔法','血魔法'],['連擊','連擊'],['範圍','範圍'],['引導','引導'],['單體','單體'],['指定','指定技能'],['位移','位移'],['增益','增益'],['詛咒','詛咒'],['附魔','附魔'],['荊棘','荊棘'],['物理',null],['火焰','火焰技能'],['冰冷','冰冷技能'],['閃電','閃電技能'],['毒素','毒素技能'],['神聖','神聖技能']].map(([id, cond]) => cond ? { id, cond } : { id }),
+  weaponGroups: { '劍': ['單手劍', '雙手劍'], '斧': ['單手斧', '雙手斧'], '棍': ['單手棍', '雙手棍'], '杖': ['短杖', '長杖'], '槍矛': ['槍矛'], '短劍': ['短劍'], '拳套': ['拳套'], '弓弩': ['弓弩'],
+    '所有近戰武器': ['單手劍', '雙手劍', '單手斧', '雙手斧', '單手棍', '雙手棍', '短劍', '槍矛'] }
+};
+// skills.json 的 meta 只需要存有改過的部分；缺的欄位用預設補上
+// 武器群組：之後新增的預設群組（例如「所有近戰武器」）會自動補進資料檔；
+// wgDefaults 記錄已經補過哪些，使用者刪掉或改名後就不會再補回來
+const mergeMeta = m => {
+  const d = JSON.parse(JSON.stringify(DEFAULT_META)), o = { ...d, ...(m || {}) };
+  if (m && m.weaponGroups) { const seen = new Set(m.wgDefaults || []); o.weaponGroups = { ...m.weaponGroups };
+    for (const [k, v] of Object.entries(d.weaponGroups)) if (!seen.has(k) && !(k in o.weaponGroups)) o.weaponGroups[k] = v; }
+  o.wgDefaults = Object.keys(d.weaponGroups);
+  return o;
+};
+// 搜尋語法：空格＝且；|＝或（魔力|魔靈）；-詞＝排除（-符文、-火|冰）
+function parseQuery(raw) {
+  const groups = [], exc = [], alts = t => t.split(/[|｜]/).filter(Boolean);
+  for (const t of String(raw || '').trim().split(/\s+/).filter(Boolean)) {
+    if (/^[-－]./.test(t)) exc.push(...alts(t.slice(1))); else if (alts(t).length) groups.push(alts(t));
+  }
+  return { terms: groups.flat(), test: x => groups.every(g => g.some(a => x.includes(a))) && !exc.some(e => x.includes(e)) };
+}
+
+</script>
+<!-- 資料：技能編輯器、符文編輯器存檔時產生的 skills.js、runes.js（和這個頁面放在同一個資料夾） -->
+<script>window.WIKI_DATA_DIR = 'data/';</script>
+<script src="data/skills.js"></script>
+<script src="data/runes.js"></script>
+<script src="data/home.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id), SC = SkillCard, esc = SC.esc;
+
+  /* ---------- 資料來源 ---------- */
+  // 資料夾：本機版＝和頁面同一層；GitHub Pages 版＝data/（建置時設定 WIKI_DATA_DIR）
+  const DATA_DIR = window.WIKI_DATA_DIR || '';
+  // 可以編輯首頁資訊欄：本機開啟或預覽版；放到網站上（https）時只顯示、不提供編輯
+  const CAN_EDIT = !!window.WIKI_PREVIEW || location.protocol === 'file:';
+  const SRC = {
+    skills: { name: '技能', data: window.LOOTANIA_SKILLS, list: 'skills', js: 'skills.js', sheet: 'skill-icons.png' },
+    runes:  { name: '符文', data: window.LOOTANIA_RUNES,  list: 'runes',  js: 'runes.js',  sheet: 'rune-icons.png' },
+  };
+  for (const s of Object.values(SRC)) {
+    const d = s.data; s.ok = !!(d && Array.isArray(d[s.list]));
+    s.items = s.ok ? d[s.list] : []; s.meta = mergeMeta(s.ok ? d.meta : null);
+    const ic = s.ok && d.iconSheet;
+    s.sheetCfg = ic ? { src: /^data:/.test(ic.file || '') ? ic.file : DATA_DIR + (ic.file || s.sheet), cell: ic.cell, cols: ic.cols, rows: ic.rows, count: ic.count } : null;
+  }
+  const useSheet = src => SC.setSheet(src.sheetCfg);   // 技能、符文各有一張圖示表，產生畫面前先切換
+
+  /* ---------- 頁面與選單（之後新增「打造」「成就」等，在這裡加一組即可） ---------- */
+  const PAGES = [
+    { id: 'active',  menu: '技能', label: '主動技能', src: 'skills', pick: s => s.kind === 'skill' },
+    { id: 'passive', menu: '技能', label: '被動技能', src: 'skills', pick: s => s.kind === 'passive' },
+    { id: 'runes',   menu: '技能', label: '符文',     src: 'runes',  pick: () => true },
+  ];
+  const MENUS = [...new Set(PAGES.map(p => p.menu))];
+  PAGES.forEach(p => { p.items = SRC[p.src].items.filter(p.pick); });
+  const pageOf = id => PAGES.find(p => p.id === id);
+  const pageOfItem = id => PAGES.find(p => p.items.some(s => s.id === id));
+
+  function renderMenu(cur) {
+    $('menu').innerHTML = MENUS.map((m, i) => {
+      const ps = PAGES.filter(p => p.menu === m), on = ps.some(p => p === cur);
+      return `<li class="${on ? 'cur' : ''}"><span tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" data-mi="${i}">${esc(m)}<i class="caret">▼</i></span>
+        <ul class="drop">${ps.map(p => p.items.length
+          ? `<li><a href="#/${p.id}" class="${p === cur ? 'on' : ''}">${esc(p.label)}</a></li>`
+          : `<li><span class="off" title="尚無資料">${esc(p.label)}<small>尚無資料</small></span></li>`).join('')}</ul></li>`;
+    }).join('');
+  }
+  // 觸控裝置沒有 hover：點選單名稱開關；點其他地方或選了項目就收起
+  const closeMenus = () => document.querySelectorAll('.menu>li.open').forEach(li => { li.classList.remove('open'); li.firstElementChild.setAttribute('aria-expanded', 'false'); });
+  $('menu').addEventListener('click', e => {
+    const sp = e.target.closest('[data-mi]');
+    if (sp) { const li = sp.parentElement, open = !li.classList.contains('open'); closeMenus(); if (open) { li.classList.add('open'); sp.setAttribute('aria-expanded', 'true'); } return; }
+    if (e.target.closest('.drop a')) { closeMenus(); document.activeElement.blur(); }
+  });
+  $('menu').addEventListener('keydown', e => {
+    const sp = e.target.closest('[data-mi]');
+    if (sp && (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown')) { e.preventDefault(); sp.parentElement.classList.add('open'); sp.setAttribute('aria-expanded', 'true'); const a = sp.parentElement.querySelector('.drop a'); if (a) a.focus(); }
+    if (e.key === 'Escape') { closeMenus(); document.activeElement.blur(); }
+  });
+  document.addEventListener('click', e => { if (!e.target.closest('.menu')) closeMenus(); });
+
+  /* ---------- 首頁：賽季資訊欄（內容存在 home.js，可在頁面上直接編輯） ---------- */
+  const HOME_DEF = { season: '', start: '', end: '', body: '', updatedAt: '' };
+  let home = { ...HOME_DEF, ...(window.LOOTANIA_HOME || {}) }, homeEditing = false, homeHandle = null, homeNotice = '', cancelArmed = false;
+  const fmtDate = s => s ? s.replace(/-/g, '/') : '';
+  const today = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); };
+  const parseDay = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+  function seasonState() {
+    const a = parseDay(home.start), b = parseDay(home.end), t0 = today(), DAY = 864e5;
+    if (a && t0 < a) return { cls: 'soon', txt: `${Math.round((a - t0) / DAY)} 天後開始` };
+    if (b && t0 > b) return { cls: 'over', txt: '已結束' };
+    if (b) { const n = Math.round((b - t0) / DAY); return { cls: n <= 7 ? 'end' : 'on', txt: n ? `剩餘 ${n} 天` : '今天結束' }; }
+    return a ? { cls: 'on', txt: '進行中' } : null;
+  }
+  // 內容格式：「## 標題」小標、「- 項目」清單、**粗體**、網址自動變連結、空行分段
+  function mdLite(src) {
+    // [顯示文字](網址)＝命名連結；單獨的網址也會自動變成連結
+    const inl = s => { const L = []; s = String(s).replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, txt, url) => `\u0000${L.push([txt, url]) - 1}\u0000`);
+      return esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(https?:\/\/[^\s<\u0000]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
+        .replace(/\u0000(\d+)\u0000/g, (_, i) => `<a href="${esc(L[i][1])}" target="_blank" rel="noopener">${esc(L[i][0]).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')}</a>`); };
+    let out = '', list = false, para = [];
+    const flushP = () => { if (para.length) { out += `<p>${para.map(inl).join('<br>')}</p>`; para = []; } };
+    const flushL = () => { if (list) { out += '</ul>'; list = false; } };
+    for (const raw of String(src || '').split(/\r?\n/)) {
+      const l = raw.trimEnd();
+      if (/^#{1,3}\s+/.test(l)) { flushP(); flushL(); out += `<h3>${inl(l.replace(/^#{1,3}\s+/, ''))}</h3>`; }
+      else if (/^\s*[-*・]\s+/.test(l)) { flushP(); if (!list) { out += '<ul>'; list = true; } out += `<li>${inl(l.replace(/^\s*[-*・]\s+/, ''))}</li>`; }
+      else if (!l.trim()) { flushP(); flushL(); }
+      else { flushL(); para.push(l); }
+    }
+    flushP(); flushL(); return out;
+  }
+  function infoView() {
+    const st = seasonState(), range = home.start || home.end ? `${fmtDate(home.start) || '?'} ～ ${fmtDate(home.end) || '未定'}` : '';
+    const empty = !home.season && !home.body.trim();
+    return `<section class="panel info"><h2>${esc(home.season || '賽季資訊')}${st ? `<span class="ss ${st.cls}">${st.txt}</span>` : ''}${CAN_EDIT ? '<button class="info-edit" id="infoEdit">編輯</button>' : ''}</h2>
+      <div class="body">${range ? `<div class="info-range">賽季期間：${range}</div>` : ''}
+      ${homeNotice ? `<p class="info-note">${esc(homeNotice)}</p>` : ''}
+      ${empty ? `<p class="sk-mut">${CAN_EDIT ? `尚未填寫賽季資訊。按右上角「編輯」填入賽季名稱、期間與內容，儲存後會寫入 <b>home.js</b>（和${DATA_DIR ? ' skills.js 同一個資料夾' : '這個頁面放在同一個資料夾'}）。` : '目前沒有賽季資訊。'}</p>` : `<div class="info-md">${mdLite(home.body)}</div>`}
+      ${home.updatedAt ? `<div class="info-upd">資訊更新：${fmtDate(home.updatedAt)}</div>` : ''}</div></section>`;
+  }
+  /* ---- 編輯器：區塊式（標題＋說明＋項目），也可切換成原始碼；存檔時轉成同一份 Markdown ---- */
+  const QUICK = ['賽季重點', '新增內容', '平衡調整', '活動資訊', '注意事項'];
+  let ed = null;   // { secs:[{title,note,items[]}], mode:'block'|'md', md }
+  function mdToSecs(md) {
+    const secs = []; let cur = null; const nw = title => { cur = { title, note: '', items: [] }; secs.push(cur); };
+    for (const raw of String(md || '').split(/\r?\n/)) {
+      const l = raw.trimEnd();
+      if (/^#{1,3}\s+/.test(l)) nw(l.replace(/^#{1,3}\s+/, ''));
+      else if (/^\s*[-*・]\s+/.test(l)) { if (!cur) nw(''); cur.items.push(l.replace(/^\s*[-*・]\s+/, '')); }
+      else { if (!cur) { if (!l.trim()) continue; nw(''); } cur.note += (cur.note ? '\n' : '') + l; }
+    }
+    secs.forEach(x => { x.note = x.note.replace(/^\n+|\s+$/g, ''); });
+    return secs.length ? secs : [{ title: '賽季重點', note: '', items: [''] }];
+  }
+  const secsToMd = secs => secs.map(x => [x.title.trim() ? '## ' + x.title.trim() : '', x.note.trim(), x.items.map(i => i.trim()).filter(Boolean).map(i => '- ' + i).join('\n')].filter(Boolean).join('\n')).filter(Boolean).join('\n\n');
+  const edBody = () => (ed.mode === 'md' ? $('hBody').value : secsToMd(ed.secs)).replace(/\s+$/, '');
+  function secHTML(x, si, n) {
+    return `<div class="sec" data-s="${si}">
+      <div class="sec-h"><input class="sec-t" data-k="title" data-s="${si}" value="${esc(x.title)}" placeholder="區塊標題（例如：新增內容）" aria-label="區塊標題">
+        <button class="ib" data-act="up" data-s="${si}" title="上移"${si ? '' : ' disabled'}>↑</button><button class="ib" data-act="down" data-s="${si}" title="下移"${si < n - 1 ? '' : ' disabled'}>↓</button><button class="ib del" data-act="delsec" data-s="${si}" title="刪除區塊">✕</button></div>
+      <textarea class="sec-n" data-k="note" data-s="${si}" rows="${Math.min(6, Math.max(1, x.note.split('\n').length))}" placeholder="說明文字（可空白）" aria-label="說明文字">${esc(x.note)}</textarea>
+      <ul class="sec-items">${x.items.map((it, ii) => `<li><span class="dot">•</span><input data-k="item" data-s="${si}" data-i="${ii}" value="${esc(it)}" placeholder="項目內容，按 Enter 新增下一項" aria-label="項目"><button class="ib del" data-act="delitem" data-s="${si}" data-i="${ii}" title="刪除項目">✕</button></li>`).join('')}</ul>
+      <button class="add-item" data-act="additem" data-s="${si}">＋ 新增項目</button></div>`;
+  }
+  function renderSecs(focus) {
+    $('hSecs').innerHTML = ed.secs.map((x, i) => secHTML(x, i, ed.secs.length)).join('') || '<p class="sk-mut">還沒有區塊，按上方的快速新增。</p>';
+    if (focus) { const el = $('hSecs').querySelector(focus); if (el) { el.focus(); if (el.setSelectionRange) el.setSelectionRange(el.value.length, el.value.length); } }
+    pvUpd();
+  }
+  const pvUpd = () => { const md = edBody(); $('hPv').innerHTML = mdLite(md) || '<span class="sk-mut">（沒有內容）</span>'; };
+  function infoForm() {
+    return `<section class="panel info"><h2>編輯賽季資訊</h2><div class="body info-form">
+      <label>賽季名稱<input id="hSeason" value="${esc(home.season)}" placeholder="例如：第 1 賽季"></label>
+      <div class="info-dates"><label>開始日期<input type="date" id="hStart" value="${esc(home.start)}"></label><label>結束日期<input type="date" id="hEnd" value="${esc(home.end)}"></label></div>
+      <div class="ed-bar"><span class="lbl">內容</span>
+        <span class="quick" id="hQuick">快速新增：${QUICK.map(q => `<button data-act="addsec" data-t="${q}">＋${q}</button>`).join('')}<button data-act="addsec" data-t="">＋空白區塊</button></span>
+        <span class="tools"><button data-act="bold" title="把選取的文字加粗（Ctrl+B）"><b>B</b></button><button data-act="link" title="把選取的文字變成連結（Ctrl+K）">連結</button><button data-act="mode" id="hMode">原始碼</button></span></div>
+      <div id="hSecs" class="secs"></div>
+      <textarea id="hBody" rows="14" hidden aria-label="原始碼"></textarea>
+      <p class="info-tip" id="hTip">項目按 <kbd>Enter</kbd> 新增下一項，空白項目按 <kbd>Backspace</kbd> 刪除；選取文字按 <kbd>Ctrl</kbd>+<kbd>B</kbd> 加粗；選取文字後<b>貼上網址</b>或按 <kbd>Ctrl</kbd>+<kbd>K</kbd>，就變成連結。</p>
+      <div class="info-pv-h">預覽</div><div class="info-md info-pv" id="hPv"></div>
+      <div class="row"><span class="info-msg" id="hMsg"></span><button id="hCancel">取消</button><button class="primary" id="hSave">${window.WIKI_PREVIEW ? '儲存（預覽版不寫入檔案）' : '儲存到 home.js'}</button></div>
+    </div></section>`;
+  }
+  function renderHome() {
+    $('crumb').innerHTML = ''; $('crumb').hidden = true;
+    const miss = Object.values(SRC).filter(s => !s.ok);
+    $('home').innerHTML = (homeEditing ? infoForm() : infoView()) + (miss.length ? missingHint(miss) : '');
+    $('home').hidden = false; $('app').hidden = true; $('none').hidden = true;
+    document.title = 'LOOTANIA Wiki';
+    if (homeEditing) { ed = { secs: mdToSecs(home.body), mode: 'block' }; renderSecs(); $('hSeason').focus(); }
+  }
+  const homeDirty = () => homeEditing && !!ed && ($('hSeason').value !== home.season || $('hStart').value !== home.start || $('hEnd').value !== home.end || edBody() !== home.body.replace(/\s+$/, ''));
+  // 在輸入框裡把選取文字包起來（粗體、連結）
+  let lastField = null;
+  $('home').addEventListener('focusin', e => { if (e.target.matches('#hSecs input,#hSecs textarea,#hBody')) lastField = e.target; });
+  function wrapSel(el, a, b, ph) {
+    if (!el) { $('hMsg').textContent = '先點一下要加入的文字欄位'; return; }
+    const s0 = el.selectionStart ?? el.value.length, s1 = el.selectionEnd ?? s0, sel = el.value.slice(s0, s1) || ph;
+    el.value = el.value.slice(0, s0) + a + sel + b + el.value.slice(s1); el.focus(); el.setSelectionRange(s0 + a.length, s0 + a.length + sel.length);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  // 連結：把選取文字變成 [文字](網址)，並選取網址部分方便直接貼上；沒選文字時插入 [連結文字](https://)
+  function makeLink(el, url) {
+    if (!el) { $('hMsg').textContent = '先點一下要加入連結的文字欄位'; return; }
+    const s0 = el.selectionStart ?? el.value.length, s1 = el.selectionEnd ?? s0, txt = el.value.slice(s0, s1) || '連結文字', u = url || 'https://';
+    el.value = el.value.slice(0, s0) + `[${txt}](${u})` + el.value.slice(s1); el.focus();
+    const us = s0 + txt.length + 3; if (url) el.setSelectionRange(us + u.length + 1, us + u.length + 1); else el.setSelectionRange(us, us + u.length);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  // 選取文字後貼上網址：自動變成命名連結
+  $('home').addEventListener('paste', e => {
+    const el = e.target; if (!el.matches('#hSecs input,#hSecs textarea,#hBody')) return;
+    const url = (e.clipboardData && e.clipboardData.getData('text') || '').trim();
+    if (!/^https?:\/\/\S+$/.test(url)) return;
+    const s0 = el.selectionStart, s1 = el.selectionEnd, sel = el.value.slice(s0, s1);
+    if (s1 > s0 && !/^https?:\/\//.test(sel)) { e.preventDefault(); makeLink(el, url); return; }
+    // 已經是 [文字](https://) 且選取的是網址部分：直接取代（瀏覽器預設行為即可）
+  });
+  $('home').addEventListener('input', e => {
+    const el = e.target, k = el.dataset.k; cancelArmed = false;
+    if (k) { const x = ed.secs[+el.dataset.s]; if (k === 'item') x.items[+el.dataset.i] = el.value; else x[k] = el.value;
+      if (k === 'note') el.rows = Math.min(6, Math.max(1, el.value.split('\n').length)); }
+    if (homeEditing && (k || el.id === 'hBody')) pvUpd();
+  });
+  $('home').addEventListener('keydown', e => {
+    const el = e.target;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b' && el.matches('#hSecs input,#hSecs textarea,#hBody')) { e.preventDefault(); wrapSel(el, '**', '**', '粗體文字'); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && el.matches('#hSecs input,#hSecs textarea,#hBody')) { e.preventDefault(); makeLink(el); return; }
+    if (el.dataset.k !== 'item' && el.dataset.k !== 'title') return;
+    const si = +el.dataset.s, x = ed.secs[si];
+    if (e.key === 'Enter' && !e.isComposing) {   // 中文輸入法選字時的 Enter 不算
+      e.preventDefault(); const ii = el.dataset.k === 'item' ? +el.dataset.i + 1 : 0;
+      x.items.splice(ii, 0, ''); renderSecs(`input[data-k=item][data-s="${si}"][data-i="${ii}"]`);
+    } else if (e.key === 'Backspace' && el.dataset.k === 'item' && !el.value) {
+      e.preventDefault(); const ii = +el.dataset.i; x.items.splice(ii, 1);
+      renderSecs(ii ? `input[data-k=item][data-s="${si}"][data-i="${ii - 1}"]` : `input[data-k=title][data-s="${si}"]`);
+    } else if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && el.dataset.k === 'item') {
+      const to = $('hSecs').querySelector(`input[data-k=item][data-s="${si}"][data-i="${+el.dataset.i + (e.key === 'ArrowDown' ? 1 : -1)}"]`); if (to) { e.preventDefault(); to.focus(); }
+    }
+  });
+  $('home').addEventListener('click', async e => {
+    const btn = e.target.closest('[data-act]');
+    if (btn && homeEditing) {
+      const act = btn.dataset.act, si = +btn.dataset.s; cancelArmed = false;
+      if (act === 'addsec') { if (ed.mode === 'md') return; ed.secs.push({ title: btn.dataset.t, note: '', items: [''] }); const n = ed.secs.length - 1;
+        renderSecs(btn.dataset.t ? `input[data-k=item][data-s="${n}"][data-i="0"]` : `input[data-k=title][data-s="${n}"]`); $('hSecs').lastElementChild.scrollIntoView({ block: 'nearest' }); }
+      else if (act === 'additem') { ed.secs[si].items.push(''); renderSecs(`input[data-k=item][data-s="${si}"][data-i="${ed.secs[si].items.length - 1}"]`); }
+      else if (act === 'delitem') { ed.secs[si].items.splice(+btn.dataset.i, 1); renderSecs(); }
+      else if (act === 'delsec') { const x = ed.secs[si];
+        if ((x.title.trim() || x.note.trim() || x.items.some(i => i.trim())) && btn.dataset.armed !== '1') { btn.dataset.armed = '1'; btn.textContent = '確定刪除？'; btn.classList.add('armed'); return; }
+        ed.secs.splice(si, 1); renderSecs(); }
+      else if (act === 'up' || act === 'down') { const j = act === 'up' ? si - 1 : si + 1; [ed.secs[si], ed.secs[j]] = [ed.secs[j], ed.secs[si]]; renderSecs(`[data-act=${act}][data-s="${j}"]`); }
+      else if (act === 'bold') wrapSel(lastField, '**', '**', '粗體文字');
+      else if (act === 'link') makeLink(lastField);
+      else if (act === 'mode') {
+        if (ed.mode === 'block') { $('hBody').value = secsToMd(ed.secs); ed.mode = 'md'; $('hSecs').hidden = true; $('hBody').hidden = false; $('hQuick').hidden = true; btn.textContent = '區塊編輯'; $('hTip').innerHTML = '原始碼格式：<code>## 標題</code>　<code>- 清單項目</code>　<code>**粗體**</code>　<code>[文字](網址)</code>　空一行＝新段落'; $('hBody').focus(); }
+        else { ed.secs = mdToSecs($('hBody').value); ed.mode = 'block'; $('hSecs').hidden = false; $('hBody').hidden = true; $('hQuick').hidden = false; btn.textContent = '原始碼'; $('hTip').innerHTML = '項目按 <kbd>Enter</kbd> 新增下一項，空白項目按 <kbd>Backspace</kbd> 刪除；選取文字按 <kbd>Ctrl</kbd>+<kbd>B</kbd> 加粗；選取文字後<b>貼上網址</b>或按 <kbd>Ctrl</kbd>+<kbd>K</kbd>，就變成連結。'; renderSecs(); }
+      }
+      return;
+    }
+    if (e.target.id === 'infoEdit') { homeEditing = true; homeNotice = ''; cancelArmed = false; renderHome(); return; }
+    // 有改過時，取消要按兩次（頁面上提示，不用跳出視窗）
+    if (e.target.id === 'hCancel') { if (homeDirty() && !cancelArmed) { cancelArmed = true; $('hMsg').textContent = '有尚未儲存的修改，再按一次「取消」放棄'; return; } homeEditing = false; renderHome(); return; }
+    if (e.target.id !== 'hSave') return;
+    const nx = { season: $('hSeason').value.trim(), start: $('hStart').value, end: $('hEnd').value, body: edBody(), updatedAt: new Date().toLocaleDateString('sv') };
+    if (nx.start && nx.end && nx.end < nx.start) { $('hMsg').textContent = '結束日期早於開始日期'; return; }
+    const txt = '/* 由 LOOTANIA Wiki 首頁「編輯」自動產生（賽季資訊欄），請勿手動修改格式 */\nwindow.LOOTANIA_HOME = ' + JSON.stringify(nx, null, 2) + ';\n';
+    try {
+      if (window.WIKI_PREVIEW) { homeNotice = '預覽版：已更新畫面，但不會寫入檔案'; }
+      else if (window.showSaveFilePicker) {   // Chrome／Edge：直接寫入檔案（第一次選擇位置，之後同一次開啟頁面會直接覆蓋）
+        if (!homeHandle) homeHandle = await showSaveFilePicker({ suggestedName: 'home.js', types: [{ description: 'JavaScript', accept: { 'text/javascript': ['.js'] } }] });
+        const w = await homeHandle.createWritable(); await w.write(txt); await w.close();
+      } else {                            // 其他瀏覽器：下載 home.js，請手動放進資料夾
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'text/javascript' })); a.download = 'home.js'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        homeNotice = `已下載 home.js，請放到${DATA_DIR ? ' ' + DATA_DIR + ' 資料夾' : '這個頁面所在的資料夾'}（覆蓋舊檔）`;
+      }
+    } catch (err) { if (err && err.name === 'AbortError') return; $('hMsg').textContent = '儲存失敗：' + (err.message || err); return; }
+    home = nx; homeEditing = false; renderHome();
+  });
+  addEventListener('beforeunload', e => { if (homeDirty()) { e.preventDefault(); e.returnValue = ''; } });
+  const missingHint = miss => `<div class="drop-hint">找不到 ${miss.map(s => `<b>${DATA_DIR}${s.js}</b>`).join('、')}。<br>
+    ${DATA_DIR ? `請把 ${miss.map(s => `<b>${s.js}</b>、<b>${s.sheet}</b>`).join('、')} 放進 <b>${DATA_DIR}</b> 資料夾。` : `請把這個頁面和 ${miss.map(s => `<b>${s.js}</b>、<b>${s.sheet}</b>`).join('、')} 放在同一個資料夾，<br>或用對應的編輯器存檔一次（會自動產生 .js）。`}</div>`;
+
+  /* ---------- 列表頁 ---------- */
+  let page = null, src = null, meta = null, allTags = [], selTags = new Set(), isSearch = false;
+  const searchText = s => [s.name, s.id, s.group, s.desc, s.source, s.effect && SC.levelsOf(s).map(r => SC.effectAt(s, r)).join(' '), SC.runeEffect(s), ...(s.tags || []), ...(s.compatTags || []), ...(s.weapons || []), s.note].join(' ');
+  const firstLv = s => { const r = SC.levelsOf(s)[0]; return r && r.req && r.req.level != null ? r.req.level : 9999; };
+  const okWeapon = (s, w) => !w || !(s.weapons || []).length || s.weapons.some(x => x === w || ((meta.weaponGroups || {})[x] || []).includes(w));
+
+  function openPage(p, params) {
+    page = p; src = SRC[p.src]; meta = src.meta; isSearch = false; $('crumb').hidden = false;
+    $('crumb').innerHTML = `<a href="#/">首頁</a><span>›</span>${esc(p.menu)}<span>›</span>${esc(p.label)}`;
+    document.title = `${p.label} · LOOTANIA Wiki`;
+    if (!src.ok) { $('home').hidden = true; $('app').hidden = true; $('none').hidden = false; $('none').innerHTML = missingHint([src]); return; }
+    const hasW = p.items.some(s => (s.weapons || []).length);
+    $('weapon').hidden = !hasW;
+    $('weapon').innerHTML = '<option value="">全部武器</option>' + meta.weaponTypes.map(w => `<option>${esc(w.id)}</option>`).join('');
+    allTags = [...new Set([...meta.skillTags.map(t => t.id), ...p.items.flatMap(s => [...(s.tags || []), ...(s.compatTags || [])])])]
+      .filter(t => p.items.some(s => (s.tags || []).includes(t) || (s.compatTags || []).includes(t)));
+    selTags = new Set((params.get('tags') || '').split(',').filter(t => allTags.includes(t)));
+    $('q').value = params.get('q') || ''; $('weapon').value = hasW ? (params.get('weapon') || '') : '';
+    // 沒有等級資料（符文）就拿掉「需求等級」排序，預設改用編號
+    const hasLv = p.items.some(s => SC.levelsOf(s).length); $('sort').querySelector('[value=lv]').hidden = !hasLv; p.defSort = hasLv ? 'lv' : 'id';
+    $('sort').value = params.get('sort') || p.defSort; if ($('sort').selectedOptions[0]?.hidden) $('sort').value = p.defSort;
+    $('onlyVerify').checked = params.get('verify') === '1';
+    $('home').hidden = true; $('none').hidden = true; $('app').hidden = false;
+    renderTags(); render();
+  }
+  function renderTags() {
+    $('tags').innerHTML = allTags.map(t => `<button data-t="${esc(t)}" class="${selTags.has(t) ? 'on' : ''}" aria-pressed="${selTags.has(t)}">${esc(t)}</button>`).join('');
+  }
+  function render() {
+    const raw = $('q').value.trim(), Q = parseQuery(raw), w = $('weapon').value;
+    let list = page.items.filter(s => okWeapon(s, w) && (!$('onlyVerify').checked || (s.verify || []).length)
+      && [...selTags].every(t => (s.tags || []).includes(t) || (s.compatTags || []).includes(t)) && Q.test(searchText(s)));
+    const so = $('sort').value;
+    list.sort(so === 'lv' ? (a, b) => firstLv(a) - firstLv(b) || a.id.localeCompare(b.id) : so === 'name' ? (a, b) => a.name.localeCompare(b.name, 'zh-Hant') : (a, b) => a.id.localeCompare(b.id));
+    useSheet(src);
+    $('list').innerHTML = list.length ? `<section class="panel"><h2>${esc(page.label)} <span class="n">/${list.length}</span></h2>
+      <div class="sk-wrap"><table class="items"><tbody>${list.map(s => SC.row(s, meta, Q.terms)).join('')}</tbody></table></div></section>`
+      : `<p class="empty">${page.items.length ? '沒有符合條件的項目' : '尚無資料'}</p>`;
+    $('count').textContent = `顯示 ${list.length} / ${page.items.length}`;
+    // 篩選條件記在網址，重新整理或分享連結時保留
+    const p = new URLSearchParams(); if (raw) p.set('q', raw); if (w) p.set('weapon', w); if (selTags.size) p.set('tags', [...selTags].join(','));
+    if (so !== page.defSort) p.set('sort', so); if ($('onlyVerify').checked) p.set('verify', '1');
+    const h = `#/${page.id}${p.toString() ? '?' + p : ''}`; listHash[page.id] = h;
+    if (location.hash !== h && !location.hash.startsWith(`#/${page.id}/`)) { try { history.replaceState(null, '', h); } catch (e) {} }
+  }
+
+  /* ---------- 路由：#/  #/active  #/runes?q=…  #/active/sk-0042 ---------- */
+  /* ---------- 技能詳細頁：#/active/sk-0010 ---------- */
+  const listHash = {};
+  const DETAIL_SRC = new Set(['skills']);   // 符文沒有等級，維持在列表裡標示
+  // 可搭配的符文：符文的相容標籤和技能標籤有任一相同就列出；沒填相容標籤的符文不列入
+  function runesFor(s) {
+    const R = SRC.runes; if (!R.ok) return '';
+    const tags = new Set(s.tags || []);
+    const hit = R.items.map(r => [r, (r.compatTags || []).filter(x => tags.has(x))]).filter(([, m]) => m.length);
+    useSheet(R);
+    const html = `<section class="panel dt-runes"><h2>可搭配的符文 <span class="n">/${hit.length}</span></h2><div class="body">
+      ${hit.length ? `<ul class="rn-list">${hit.map(([r, m]) => `<li><a href="#/runes/${esc(r.id)}" data-tip="${esc(r.id)}"><span class="icon">${SC.iconHTML(r, R.meta)}</span><span class="rn-t"><b>${esc(r.name)}</b><small>${m.map(x => `【${esc(x)}】`).join('')}</small></span></a></li>`).join('')}</ul>`
+        : '<p class="sk-mut">沒有相容標籤符合的符文。</p>'}
+</div></section>`;
+    useSheet(SRC.skills); return html;
+  }
+  function openDetail(p, id) {
+    const s0 = SRC[p.src], s = p.items.find(x => x.id === id);
+    page = p; src = s0; meta = s0.meta; useSheet(s0);
+    const back = listHash[p.id] || `#/${p.id}`;
+    $('crumb').hidden = false;
+    $('crumb').innerHTML = `<a href="#/">首頁</a><span>›</span>${esc(p.menu)}<span>›</span><a href="${esc(back)}">${esc(p.label)}</a>${s ? `<span>›</span>${esc(s.name)}` : ''}`;
+    $('home').hidden = true; $('app').hidden = true; $('none').hidden = true; $('detail').hidden = false;
+    if (!s) { $('detail').innerHTML = `<p class="empty">找不到這個技能（${esc(id)}），可能已改名或刪除。<a href="${esc(back)}">回到${esc(p.label)}列表</a></p>`; return; }
+    document.title = `${s.name} · ${p.label} · LOOTANIA Wiki`;
+    const L = SC.levelsOf(s), cap = s.maxLevel || 0;
+    const order = p.items.slice().sort((a, b) => firstLv(a) - firstLv(b) || a.id.localeCompare(b.id)), oi = order.indexOf(s);
+    const prev = order[oi - 1], next = order[oi + 1];
+    const wg = meta.weaponGroups || {};
+    const weapons = (s.weapons || []).map(w => wg[w] && !(wg[w].length === 1 && wg[w][0] === w) ? `${esc(w)}<small>（${wg[w].map(esc).join('、')}）</small>` : esc(w)).join('、');
+    const conds = SC.talentConds(s, meta);
+    const info = [
+      ['種類', esc(SC.kindLabel(s, meta))],
+      cap ? ['等級上限', `${cap}${L.length > cap ? `<small>（資料到 Lv.${L[L.length - 1].lv}，超過上限的是加成等級）</small>` : ''}`] : null,
+      ['需求武器', weapons || '無'],
+      s.source ? ['獲得方式', `<span class="dt-src">${esc(s.source).replace(/\n/g, '<br>')}</span>`] : null,
+      conds.skill.length ? ['對應天賦條件', conds.skill.map(c => `<span class="dt-chip">${esc(c)}</span>`).join('')] : null,
+    ].filter(Boolean);
+    const keys = (meta.requirements || []).filter(k => k !== 'level' && L.some(r => r.req && r.req[k]));
+    const capRow = L.filter(r => !cap || r.lv <= cap).pop() || L[0];
+    const rowHTML = (r, i) => `<tr data-i="${i}" class="${cap && r.lv > cap ? 'over' : ''}"><td>${SC.num(r.lv)}</td><td>${r.req && r.req.level != null ? SC.num(r.req.level) : '—'}</td>${keys.map(k => `<td>${r.req && r.req[k] ? SC.num(r.req[k]) : '—'}</td>`).join('')}<td class="l">${s.effect ? esc(SC.effectAt(s, r)) : '—'}</td></tr>`;
+    let rows = '';
+    L.forEach((r, i) => { if (cap && r.lv === cap + 1) rows += `<tr class="sep"><td colspan="${3 + keys.length}">超過等級上限（加成等級）</td></tr>`; rows += rowHTML(r, i); });
+    $('detail').innerHTML = `<div class="dt-head"><div class="icon dt-ic">${SC.iconHTML(s, meta)}</div>
+          <div class="dt-tt"><h1>${esc(s.name)}</h1>${(s.tags || []).length ? `<div class="sk-tags">${s.tags.map(x => `<b class="sk-tag">【${esc(x)}】</b>`).join('')}</div>` : ''}</div>
+          <nav class="dt-nav" aria-label="上一個、下一個技能">${prev ? `<a href="#/${p.id}/${esc(prev.id)}" title="${esc(prev.name)}">‹ ${esc(prev.name)}</a>` : '<span></span>'}${next ? `<a href="#/${p.id}/${esc(next.id)}" title="${esc(next.name)}">${esc(next.name)} ›</a>` : ''}</nav></div>
+    <div class="dt">
+      <div class="dt-main">
+                <section class="panel"><h2>基本資料</h2><div class="body">
+          <dl class="dt-info">${info.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+          ${s.desc ? `<div class="dt-desc">${esc(s.desc).replace(/\n/g, '<br>')}</div>` : ''}</div></section>
+        ${s.effect && L.length ? `<section class="panel"><h2>效果</h2><div class="body dt-eff">
+          <div><span class="k">Lv.${SC.num(L[0].lv)}</span>${esc(SC.effectAt(s, L[0]))}</div>
+          ${capRow !== L[0] ? `<div><span class="k">Lv.${SC.num(capRow.lv)}</span>${esc(SC.effectAt(s, capRow))}</div>` : ''}</div></section>` : ''}
+        ${L.length ? `<section class="panel"><h2>等級資料 <span class="n">/${L.length}</span><small class="dt-hint">點一列可在右側預覽該等級</small></h2>
+          <div class="sk-wrap"><table class="sk-lvt dt-lvt"><thead><tr><th>等級</th><th>需求等級</th>${keys.map(k => `<th>${esc(meta.requirementLabels[k] || k)}</th>`).join('')}<th>效果</th></tr></thead><tbody>${rows}</tbody></table></div></section>` : ''}
+        ${s.note || (s.verify || []).length ? `<section class="panel"><h2>備註</h2><div class="body">${s.note ? `<div>${esc(s.note)}</div>` : ''}${(s.verify || []).length ? `<div><span class="badge">待確認</span>${esc(s.verify.join('、'))}</div>` : ''}</div></section>` : ''}
+        <p><a href="${esc(back)}">‹ 回到${esc(p.label)}列表</a></p>
+      </div>
+      <aside class="dt-side"><div class="dt-sticky">
+        ${L.length > 1 ? `<label class="dt-lvsel">預覽等級 <input type="range" id="dtLv" min="0" max="${L.length - 1}" value="0" aria-label="預覽等級"><b id="dtLvN">Lv.${SC.num(L[0].lv)}</b></label>` : ''}
+        <div id="dtTip">${SC.tip(s, meta, { idx: 0 })}</div>
+        ${runesFor(s)}</div></aside>
+    </div>`;
+    const pick = i => { useSheet(s0); $('dtTip').innerHTML = SC.tip(s, meta, { idx: i }); if ($('dtLv')) { $('dtLv').value = i; $('dtLvN').textContent = 'Lv.' + SC.num(L[i].lv); }
+      $('detail').querySelectorAll('.dt-lvt tr.on').forEach(r => r.classList.remove('on')); const tr = $('detail').querySelector(`.dt-lvt tr[data-i="${i}"]`); if (tr) tr.classList.add('on'); };
+    if ($('dtLv')) $('dtLv').addEventListener('input', e => pick(+e.target.value));
+    $('detail').querySelector('.dt-lvt')?.addEventListener('click', e => { const tr = e.target.closest('tr[data-i]'); if (tr) pick(+tr.dataset.i); });
+    pick(0);
+  }
+
+  function route() {
+    tip.hidden = true; closeMenus(); $('detail').hidden = true;
+    const h = location.hash.replace(/^#\/?/, ''), [path, qs] = h.split('?'), params = new URLSearchParams(qs || ''), seg = path.split('/');
+    let p = pageOf(seg[0]), item = seg[1] || '';
+    if (!p && /^(sk|rn)-\d+$/.test(seg[0])) { item = seg[0]; p = pageOfItem(item); }   // 舊連結 #sk-0042
+    renderMenu(p);
+    if (!p) { renderHome(); scrollTo(0, 0); return; }
+    if (item && DETAIL_SRC.has(p.src)) { openDetail(p, item); scrollTo(0, 0); return; }
+    openPage(p, params);
+    if (item) { const el = document.getElementById(item); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1600); } }
+    else scrollTo(0, 0);
+  }
+  addEventListener('hashchange', route);
+
+  /* ---------- 篩選事件 ---------- */
+  $('tags').addEventListener('click', e => { const b = e.target.closest('button[data-t]'); if (!b) return; const t = b.dataset.t; selTags.has(t) ? selTags.delete(t) : selTags.add(t); renderTags(); render(); });
+  let qt; $('q').addEventListener('input', () => { clearTimeout(qt); qt = setTimeout(render, 120); });
+  $('sort').onchange = render; $('onlyVerify').onchange = render; $('weapon').onchange = render;
+  // 名稱旁的編號連結：改成 #/頁面/編號，複製後可直接開到該項目
+  document.addEventListener('click', e => { const a = e.target.closest('a.it-id,a.sk-name,td.ic .icon'); if (!a) return;
+    const id = a.matches('.icon') ? a.closest('tr')?.id : (a.getAttribute('href') || '').slice(1); const p = pageOfItem(id); if (!p) return;
+    e.preventDefault();
+    if (DETAIL_SRC.has(p.src)) { tip.hidden = true; location.hash = `#/${p.id}/${id}`; return; }   // 技能：進入詳細頁（瀏覽器「上一頁」可回列表）
+ history.replaceState(null, '', `#/${p.id}/${id}`); const el = document.getElementById(id); if (el) { el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1600); } });
+
+  /* ---------- 提示框 ---------- */
+  const tip = $('tip');
+  function placeTip(e) { const w = tip.offsetWidth, h = tip.offsetHeight, m = 14; let x = e.clientX + m, y = e.clientY + m;
+    if (x + w > innerWidth - 8) x = e.clientX - w - m; if (y + h > innerHeight - 8) y = Math.max(8, innerHeight - h - 8);
+    tip.style.left = Math.max(8, x) + 'px'; tip.style.top = y + 'px'; }
+  const findItem = id => { for (const p of PAGES) { const s = p.items.find(x => x.id === id); if (s) return [s, SRC[p.src]]; } return []; };
+  document.addEventListener('mouseover', e => { const a = e.target.closest('[data-tip]'); if (!a) return; const [s, s0] = findItem(a.dataset.tip); if (!s) return;
+    useSheet(s0); tip.innerHTML = SC.tip(s, s0.meta); tip.hidden = false; placeTip(e); });
+  document.addEventListener('mousemove', e => { if (!tip.hidden) placeTip(e); });
+  document.addEventListener('mouseout', e => { if (e.target.closest('[data-tip]') && !e.relatedTarget?.closest?.('[data-tip]')) tip.hidden = true; });
+  addEventListener('scroll', () => { tip.hidden = true; }, { passive: true });
+
+  route();
+})();
+</script>
+</body>
+</html>
