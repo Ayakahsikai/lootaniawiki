@@ -1,0 +1,92 @@
+# 把 wiki/ 發佈成 GitHub Pages 網站：
+#   wiki/  →  網站根目錄    https://<帳號>.github.io/<repo>/
+# 使用前：Settings → Pages → Build and deployment → Source 選「GitHub Actions」
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 檢查 Wiki 資料
+        run: |
+          set -euo pipefail
+          test -f wiki/index.html || { echo "::error::找不到 wiki/index.html"; exit 1; }
+          python3 - <<'PY'
+          import json, os, re, sys
+          D = 'wiki/data/'
+          errs, warns = [], []
+          def load_js(name, var, required=True):
+              p = D + name
+              if not os.path.exists(p):
+                  (errs if required else warns).append(f'找不到 {p}'); return None
+              t = open(p, encoding='utf-8').read()
+              m = re.search(r'window\.' + var + r'\s*=\s*', t)
+              if not m: errs.append(f'{p}: 找不到 window.{var} =（檔案格式不對，請用編輯器重新存檔）'); return None
+              body = t[m.end():].rstrip().rstrip(';')
+              try: return json.loads(body)
+              except Exception as e: errs.append(f'{p}: 內容不是正確的 JSON（{e}）'); return None
+          def check(d, name, key):
+              if d is None: return
+              items = d.get(key)
+              if not isinstance(items, list): errs.append(f'{name}: 找不到 {key} 陣列'); return
+              ids = [x.get('id') for x in items]
+              dup = sorted({i for i in ids if ids.count(i) > 1})
+              if dup: errs.append(f'{name}: 編號重複 {", ".join(map(str, dup))}')
+              for x in items:
+                  if not x.get('name'): errs.append(f'{name}: {x.get("id")} 沒有名稱')
+              sh = d.get('iconSheet')
+              if sh:
+                  if not os.path.exists(D + sh.get('file', '')): errs.append(f'{name}: 找不到圖示表 {D}{sh.get("file")}')
+                  bad = [x['id'] for x in items if isinstance(x.get('icon'), int) and not (0 <= x['icon'] < sh.get('count', 0))]
+                  if bad: errs.append(f'{name}: 圖示編號超出圖示表範圍 {", ".join(bad)}')
+              print(f'{name}: {len(items)} 筆')
+          check(load_js('skills.js', 'LOOTANIA_SKILLS'), 'skills.js', 'skills')
+          check(load_js('runes.js', 'LOOTANIA_RUNES'), 'runes.js', 'runes')
+          h = load_js('home.js', 'LOOTANIA_HOME', required=False)
+          if h is not None:
+              for k in ('start', 'end'):
+                  if h.get(k) and not re.fullmatch(r'\d{4}-\d{2}-\d{2}', h[k]): errs.append(f'home.js: {k} 日期格式應為 YYYY-MM-DD')
+              if h.get('start') and h.get('end') and h['end'] < h['start']: errs.append('home.js: 結束日期早於開始日期')
+          for w in warns: print(f'::warning::{w}')
+          for e in errs: print(f'::error::{e}')
+          sys.exit(1 if errs else 0)
+          PY
+
+      - name: 組合網站
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp -a wiki/. _site/
+          touch _site/.nojekyll
+          echo "網站內容："; find _site -maxdepth 2 | sort
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
