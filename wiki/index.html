@@ -190,7 +190,7 @@ mark{background:rgba(201,163,91,.33);color:inherit;border-radius:2px}
 .info-form label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);margin-bottom:10px}
 .info-form input,.info-form textarea{width:100%;color:var(--text)}
 .info-form textarea{font:13px/1.7 var(--f-ui);resize:vertical;background:#0e0e0e;border:1px solid var(--line-2);border-radius:3px;padding:8px 10px}
-.info-dates{display:flex;gap:12px}.info-dates label{flex:1}
+.info-dates{display:flex;gap:12px}.dt-in{display:flex;gap:6px}.dt-in input[type=date]{flex:1;min-width:0}.dt-in input[type=time]{width:120px;flex:none}.info-dates label{flex:1}
 .info-tip{font-size:12px;color:var(--muted);margin:-4px 0 10px}.info-tip code{font:11px var(--f-mono);background:#1a1a1a;padding:1px 5px;border-radius:3px;color:var(--text)}
 .ed-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-bottom:8px}
 .ed-bar .lbl{font-size:13px;color:var(--muted)}
@@ -244,7 +244,11 @@ td.ic .icon{cursor:pointer}
 .rn-list a:hover{background:#1a1a1a;text-decoration:none;color:#fff}
 .rn-list .icon{width:36px;height:36px;flex:none}.rn-list .icon .sk-spr{width:36px;height:36px}
 .rn-t{display:flex;flex-direction:column;min-width:0;line-height:1.35}.rn-t b{font-weight:500;color:var(--white)}.rn-t small{color:#e2725b;font-size:11.5px}
-.it-id{display:none}   /* Wiki 不顯示編號（連結仍用編號） */
+a.wl{color:var(--accent);border-bottom:1px dotted currentColor}a.wl:hover{text-decoration:none;color:#e0bd72}
+a.wl.q{color:#8fd18f}a.wl.q:hover{color:#b5e6b5}
+a.wl.miss{color:var(--warn);border-bottom-style:dashed}
+.wl-pick{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:8px;padding:8px;border:1px solid var(--accent);border-radius:4px;background:#0b0b0b}
+.wl-pick input{flex:1;min-width:180px}.wl-msg{width:100%;font-size:12px;color:var(--warn)}.wl-msg:empty{display:none}
 .drop-hint{border:1px dashed var(--line-2);border-radius:4px;padding:24px;color:var(--muted);line-height:1.9;margin-top:10px}
 .drop-hint b{color:var(--white)}
 </style>
@@ -267,9 +271,9 @@ td.ic .icon{cursor:pointer}
         <option value="lv">需求等級 低→高</option>
         <option value="name">名稱</option>
         <option value="id">編號</option>
+        <option value="price">價格 低→高</option>
+        <option value="price-d">價格 高→低</option>
       </select>
-      <label><input type="checkbox" id="onlyVerify"> 只看待確認</label>
-      <span class="count" id="count"></span>
     </div>
     <div class="chips" id="tags" aria-label="標籤（可複選，需全部符合）" style="margin:-4px 0 12px"></div>
     <div id="list"></div>
@@ -476,22 +480,60 @@ function parseQuery(raw) {
   /* ---------- 首頁：賽季資訊欄（內容存在 home.js，可在頁面上直接編輯） ---------- */
   const HOME_DEF = { season: '', start: '', end: '', body: '', updatedAt: '' };
   let home = { ...HOME_DEF, ...(window.LOOTANIA_HOME || {}) }, homeEditing = false, homeHandle = null, homeNotice = '', cancelArmed = false;
-  const fmtDate = s => s ? s.replace(/-/g, '/') : '';
-  const today = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); };
-  const parseDay = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+  // 日期時間：存成「2026-09-24」或「2026-09-24T10:00」，一律以台灣時間（UTC+8，遊戲伺服器時間）計算倒數
+  const DT_RE = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?$/;
+  const fmtDate = s => { const m = DT_RE.exec(s || ''); return m ? `${m[1]}/${m[2]}/${m[3]}${m[4] ? ` ${m[4]}:${m[5]}` : ''}` : (s || ''); };
+  // endOfDay：結束日期沒填時間時，算到當天 23:59
+  const parseTW = (s, endOfDay) => { const m = DT_RE.exec(s || ''); if (!m) return null;
+    const hm = m[4] ? `${m[4]}:${m[5]}:00` : endOfDay ? '23:59:59' : '00:00:00'; return new Date(`${m[1]}-${m[2]}-${m[3]}T${hm}+08:00`); };
+  const splitDT = s => { const m = DT_RE.exec(s || ''); return m ? [`${m[1]}-${m[2]}-${m[3]}`, m[4] ? `${m[4]}:${m[5]}` : ''] : ['', '']; };
+  const joinDT = (d, tm) => d ? d + (tm ? 'T' + tm : '') : '';
   function seasonState() {
-    const a = parseDay(home.start), b = parseDay(home.end), t0 = today(), DAY = 864e5;
-    if (a && t0 < a) return { cls: 'soon', txt: `${Math.round((a - t0) / DAY)} 天後開始` };
-    if (b && t0 > b) return { cls: 'over', txt: '已結束' };
-    if (b) { const n = Math.round((b - t0) / DAY); return { cls: n <= 7 ? 'end' : 'on', txt: n ? `剩餘 ${n} 天` : '今天結束' }; }
+    const a = parseTW(home.start), b = parseTW(home.end, true), now = Date.now(), H = 36e5, DAY = 864e5;
+    const span = ms => ms >= DAY ? `${Math.floor(ms / DAY)} 天` : `${Math.max(1, Math.ceil(ms / H))} 小時`;
+    if (a && now < a) return { cls: 'soon', txt: `${span(a - now)}後開始` };
+    if (b && now > b) return { cls: 'over', txt: '已結束' };
+    if (b) return { cls: b - now <= 7 * DAY ? 'end' : 'on', txt: `剩餘 ${span(b - now)}` };
     return a ? { cls: 'on', txt: '進行中' } : null;
   }
   // 內容格式：「## 標題」小標、「- 項目」清單、**粗體**、網址自動變連結、空行分段
+  // 站內連結 [[名稱]]：
+  //   1. 名稱和某個技能／符文完全相同 → 連到該項目（技能開詳細頁、符文在列表標示）
+  //   2. 否則當成關鍵字搜尋（例如地點「勇士之村」會找到獲得方式含這幾個字的項目）：
+  //      分類取「[[符文:勇士之村]]」寫法的前綴，或同一行前面最近的「主動技能：／被動技能：／符文：」；都沒有就用第一個有結果的分類
+  //   3. 完全找不到 → 紅色虛線
+  const WL = [];
+  function findByName(name) { for (const p of PAGES) { const s = p.items.find(x => x.name === name); if (s) return [p, s]; } return []; }
+  const pageByLabel = l => PAGES.find(p => p.label === l);
+  function ctxPage(before) {
+    before = before.replace(/\[\[[^\]]*\]\]/g, '');   // 其他連結裡的「符文:」不算
+    let best = null, at = -1;
+    for (const p of PAGES) for (const sep of ['：', ':']) { const i = before.lastIndexOf(p.label + sep); if (i > at) { at = i; best = p; } }
+    return best;
+  }
+  function wikiLink(raw, label, before) {
+    let name = raw, pg = null; const m = /^(.+?)[:：](.+)$/.exec(raw);
+    if (m && pageByLabel(m[1].trim())) { pg = pageByLabel(m[1].trim()); name = m[2].trim(); if (label === raw) label = name; }
+    const [p, s] = pg ? [pg, pg.items.find(x => x.name === name)] : findByName(name);
+    let h;
+    if (s) h = `<a class="wl" href="#/${p.id}/${esc(s.id)}" data-tip="${esc(s.id)}">${esc(label)}</a>`;
+    else {
+      const Q = parseQuery(name), cnt = q => q.items.filter(x => Q.test(searchText(x))).length;
+      const c = pg || ctxPage(before), tgt = c || PAGES.find(q => cnt(q)) || PAGES[0], n = cnt(tgt);
+      h = n ? `<a class="wl q" href="#/${tgt.id}?q=${encodeURIComponent(name)}" title="在${esc(tgt.label)}搜尋「${esc(name)}」：${n} 筆">${esc(label)}</a>`
+        : `<a class="wl miss" href="#/${tgt.id}?q=${encodeURIComponent(name)}" title="${esc(tgt.label)}裡找不到「${esc(name)}」">${esc(label)}</a>`;
+    }
+    return `\u0001${WL.push(h) - 1}\u0001`;
+  }
   function mdLite(src) {
-    // [顯示文字](網址)＝命名連結；單獨的網址也會自動變成連結
-    const inl = s => { const L = []; s = String(s).replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, txt, url) => `\u0000${L.push([txt, url]) - 1}\u0000`);
-      return esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/(https?:\/\/[^\s<\u0000]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
-        .replace(/\u0000(\d+)\u0000/g, (_, i) => `<a href="${esc(L[i][1])}" target="_blank" rel="noopener">${esc(L[i][0]).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')}</a>`); };
+    // [[技能名稱]]＝站內連結（技能→詳細頁、符文→列表）；[顯示文字](網址)＝命名連結；單獨的網址也會自動變成連結
+    const bold = h => h.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+    const inl = s => { const L = [], tok = h => `\u0000${L.push(h) - 1}\u0000`;
+      s = String(s).replace(/\[\[([^\]\n|]+)(?:\|([^\]\n]+))?\]\]/g, (_, name, label, off, all) => wikiLink(name.trim(), (label || name).trim(), all.slice(0, off)))
+        .replace(/\u0001(\d+)\u0001/g, (_, i) => tok(WL[+i]))
+        .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, txt, url) => tok(`<a href="${esc(url)}" target="_blank" rel="noopener">${bold(esc(txt))}</a>`));
+      WL.length = 0;
+      return bold(esc(s)).replace(/(https?:\/\/[^\s<\u0000]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\u0000(\d+)\u0000/g, (_, i) => L[+i]); };
     let out = '', list = false, para = [];
     const flushP = () => { if (para.length) { out += `<p>${para.map(inl).join('<br>')}</p>`; para = []; } };
     const flushL = () => { if (list) { out += '</ul>'; list = false; } };
@@ -505,7 +547,8 @@ function parseQuery(raw) {
     flushP(); flushL(); return out;
   }
   function infoView() {
-    const st = seasonState(), range = home.start || home.end ? `${fmtDate(home.start) || '?'} ～ ${fmtDate(home.end) || '未定'}` : '';
+    const st = seasonState(), hasT = /T/.test(home.start + home.end);
+    const range = home.start || home.end ? `${fmtDate(home.start) || '?'} ～ ${fmtDate(home.end) || '未定'}${hasT ? '（台灣時間）' : ''}` : '';
     const empty = !home.season && !home.body.trim();
     return `<section class="panel info"><h2>${esc(home.season || '賽季資訊')}${st ? `<span class="ss ${st.cls}">${st.txt}</span>` : ''}${CAN_EDIT ? '<button class="info-edit" id="infoEdit">編輯</button>' : ''}</h2>
       <div class="body">${range ? `<div class="info-range">賽季期間：${range}</div>` : ''}
@@ -546,13 +589,16 @@ function parseQuery(raw) {
   function infoForm() {
     return `<section class="panel info"><h2>編輯賽季資訊</h2><div class="body info-form">
       <label>賽季名稱<input id="hSeason" value="${esc(home.season)}" placeholder="例如：第 1 賽季"></label>
-      <div class="info-dates"><label>開始日期<input type="date" id="hStart" value="${esc(home.start)}"></label><label>結束日期<input type="date" id="hEnd" value="${esc(home.end)}"></label></div>
+      <div class="info-dates"><label>開始<span class="dt-in"><input type="date" id="hStart" value="${splitDT(home.start)[0]}" aria-label="開始日期"><input type="time" id="hStartT" value="${splitDT(home.start)[1]}" aria-label="開始時間"></span></label>
+        <label>結束<span class="dt-in"><input type="date" id="hEnd" value="${splitDT(home.end)[0]}" aria-label="結束日期"><input type="time" id="hEndT" value="${splitDT(home.end)[1]}" aria-label="結束時間"></span></label></div>
+      <p class="info-tip">時間可不填；以台灣時間（UTC+8）計算。結束沒填時間時算到當天 23:59。</p>
       <div class="ed-bar"><span class="lbl">內容</span>
         <span class="quick" id="hQuick">快速新增：${QUICK.map(q => `<button data-act="addsec" data-t="${q}">＋${q}</button>`).join('')}<button data-act="addsec" data-t="">＋空白區塊</button></span>
-        <span class="tools"><button data-act="bold" title="把選取的文字加粗（Ctrl+B）"><b>B</b></button><button data-act="link" title="把選取的文字變成連結（Ctrl+K）">連結</button><button data-act="mode" id="hMode">原始碼</button></span></div>
+        <span class="tools"><button data-act="bold" title="把選取的文字加粗（Ctrl+B）"><b>B</b></button><button data-act="link" title="把選取的文字變成連結（Ctrl+K）">連結</button><button data-act="wlink" title="插入技能／符文連結（也可以直接輸入 [[名稱]]）">技能連結</button><button data-act="mode" id="hMode">原始碼</button></span></div>
+      <div class="wl-pick" id="hPick" hidden><input id="hPickIn" list="hNames" placeholder="輸入技能／符文名稱，或關鍵字（例如地點），按 Enter 插入" aria-label="技能或符文名稱" autocomplete="off"><datalist id="hNames">${PAGES.flatMap(p => p.items.map(s => `<option value="${esc(s.name)}">${esc(p.label)}</option>`)).join('')}</datalist><button data-act="wl-ok">插入</button><button data-act="wl-x">取消</button><span class="wl-msg" id="hPickMsg"></span></div>
       <div id="hSecs" class="secs"></div>
       <textarea id="hBody" rows="14" hidden aria-label="原始碼"></textarea>
-      <p class="info-tip" id="hTip">項目按 <kbd>Enter</kbd> 新增下一項，空白項目按 <kbd>Backspace</kbd> 刪除；選取文字按 <kbd>Ctrl</kbd>+<kbd>B</kbd> 加粗；選取文字後<b>貼上網址</b>或按 <kbd>Ctrl</kbd>+<kbd>K</kbd>，就變成連結。</p>
+      <p class="info-tip" id="hTip">項目按 <kbd>Enter</kbd> 新增下一項，空白項目按 <kbd>Backspace</kbd> 刪除；選取文字按 <kbd>Ctrl</kbd>+<kbd>B</kbd> 加粗；選取文字後<b>貼上網址</b>或按 <kbd>Ctrl</kbd>+<kbd>K</kbd>，就變成連結；輸入 <code>[[技能名稱]]</code> 或按「技能連結」，會連到該技能；不是名稱時會變成搜尋連結（例如 <code>主動技能：[[勇士之村]]</code>）。</p>
       <div class="info-pv-h">預覽</div><div class="info-md info-pv" id="hPv"></div>
       <div class="row"><span class="info-msg" id="hMsg"></span><button id="hCancel">取消</button><button class="primary" id="hSave">${window.WIKI_PREVIEW ? '儲存（預覽版不寫入檔案）' : '儲存到 home.js'}</button></div>
     </div></section>`;
@@ -565,7 +611,7 @@ function parseQuery(raw) {
     document.title = 'LOOTANIA Wiki';
     if (homeEditing) { ed = { secs: mdToSecs(home.body), mode: 'block' }; renderSecs(); $('hSeason').focus(); }
   }
-  const homeDirty = () => homeEditing && !!ed && ($('hSeason').value !== home.season || $('hStart').value !== home.start || $('hEnd').value !== home.end || edBody() !== home.body.replace(/\s+$/, ''));
+  const homeDirty = () => homeEditing && !!ed && ($('hSeason').value !== home.season || joinDT($('hStart').value, $('hStartT').value) !== home.start || joinDT($('hEnd').value, $('hEndT').value) !== home.end || edBody() !== home.body.replace(/\s+$/, ''));
   // 在輸入框裡把選取文字包起來（粗體、連結）
   let lastField = null;
   $('home').addEventListener('focusin', e => { if (e.target.matches('#hSecs input,#hSecs textarea,#hBody')) lastField = e.target; });
@@ -581,6 +627,16 @@ function parseQuery(raw) {
     const s0 = el.selectionStart ?? el.value.length, s1 = el.selectionEnd ?? s0, txt = el.value.slice(s0, s1) || '連結文字', u = url || 'https://';
     el.value = el.value.slice(0, s0) + `[${txt}](${u})` + el.value.slice(s1); el.focus();
     const us = s0 + txt.length + 3; if (url) el.setSelectionRange(us + u.length + 1, us + u.length + 1); else el.setSelectionRange(us, us + u.length);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  // 技能連結：插入 [[名稱]]；名稱不存在時提示（仍可插入，之後補資料就會自動連上）
+  let wlTarget = null, wlPos = [0, 0];
+  function insertWL() {
+    const name = $('hPickIn').value.trim(); if (!name) { $('hPickMsg').textContent = '請輸入名稱'; return; }
+    // 不是技能／符文名稱時當成關鍵字搜尋（例如地點）；完全搜不到才提示
+    if (!findByName(name)[1] && !PAGES.some(q => q.items.some(x => parseQuery(name).test(searchText(x)))) && $('hPickMsg').dataset.warned !== name) { $('hPickMsg').dataset.warned = name; $('hPickMsg').textContent = `目前沒有任何技能或符文符合「${name}」，再按一次插入仍會加入（之後資料有了就會自動連上）`; return; }
+    const el = wlTarget, ins = `[[${name}]]`; el.value = el.value.slice(0, wlPos[0]) + ins + el.value.slice(wlPos[1]);
+    $('hPick').hidden = true; $('hPickMsg').dataset.warned = ''; el.focus(); const c = wlPos[0] + ins.length; el.setSelectionRange(c, c);
     el.dispatchEvent(new Event('input', { bubbles: true }));
   }
   // 選取文字後貼上網址：自動變成命名連結
@@ -602,6 +658,7 @@ function parseQuery(raw) {
     const el = e.target;
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b' && el.matches('#hSecs input,#hSecs textarea,#hBody')) { e.preventDefault(); wrapSel(el, '**', '**', '粗體文字'); return; }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && el.matches('#hSecs input,#hSecs textarea,#hBody')) { e.preventDefault(); makeLink(el); return; }
+    if (el.id === 'hPickIn') { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); insertWL(); } else if (e.key === 'Escape') { e.preventDefault(); $('hPick').hidden = true; wlTarget && wlTarget.focus(); } return; }
     if (el.dataset.k !== 'item' && el.dataset.k !== 'title') return;
     const si = +el.dataset.s, x = ed.secs[si];
     if (e.key === 'Enter' && !e.isComposing) {   // 中文輸入法選字時的 Enter 不算
@@ -628,9 +685,13 @@ function parseQuery(raw) {
       else if (act === 'up' || act === 'down') { const j = act === 'up' ? si - 1 : si + 1; [ed.secs[si], ed.secs[j]] = [ed.secs[j], ed.secs[si]]; renderSecs(`[data-act=${act}][data-s="${j}"]`); }
       else if (act === 'bold') wrapSel(lastField, '**', '**', '粗體文字');
       else if (act === 'link') makeLink(lastField);
+      else if (act === 'wlink') { if (!lastField) { $('hMsg').textContent = '先點一下要插入連結的文字欄位'; return; } wlTarget = lastField; wlPos = [lastField.selectionStart, lastField.selectionEnd];
+        $('hPick').hidden = false; $('hPickIn').value = wlTarget.value.slice(wlPos[0], wlPos[1]); $('hPickMsg').textContent = ''; $('hPickIn').focus(); }
+      else if (act === 'wl-ok') insertWL();
+      else if (act === 'wl-x') { $('hPick').hidden = true; wlTarget && wlTarget.focus(); }
       else if (act === 'mode') {
-        if (ed.mode === 'block') { $('hBody').value = secsToMd(ed.secs); ed.mode = 'md'; $('hSecs').hidden = true; $('hBody').hidden = false; $('hQuick').hidden = true; btn.textContent = '區塊編輯'; $('hTip').innerHTML = '原始碼格式：<code>## 標題</code>　<code>- 清單項目</code>　<code>**粗體**</code>　<code>[文字](網址)</code>　空一行＝新段落'; $('hBody').focus(); }
-        else { ed.secs = mdToSecs($('hBody').value); ed.mode = 'block'; $('hSecs').hidden = false; $('hBody').hidden = true; $('hQuick').hidden = false; btn.textContent = '原始碼'; $('hTip').innerHTML = '項目按 <kbd>Enter</kbd> 新增下一項，空白項目按 <kbd>Backspace</kbd> 刪除；選取文字按 <kbd>Ctrl</kbd>+<kbd>B</kbd> 加粗；選取文字後<b>貼上網址</b>或按 <kbd>Ctrl</kbd>+<kbd>K</kbd>，就變成連結。'; renderSecs(); }
+        if (ed.mode === 'block') { $('hBody').value = secsToMd(ed.secs); ed.mode = 'md'; $('hSecs').hidden = true; $('hBody').hidden = false; $('hQuick').hidden = true; btn.textContent = '區塊編輯'; $('hTip').innerHTML = '原始碼格式：<code>## 標題</code>　<code>- 清單項目</code>　<code>**粗體**</code>　<code>[文字](網址)</code>　<code>[[技能名稱]]</code>　空一行＝新段落'; $('hBody').focus(); }
+        else { ed.secs = mdToSecs($('hBody').value); ed.mode = 'block'; $('hSecs').hidden = false; $('hBody').hidden = true; $('hQuick').hidden = false; btn.textContent = '原始碼'; $('hTip').innerHTML = '項目按 <kbd>Enter</kbd> 新增下一項，空白項目按 <kbd>Backspace</kbd> 刪除；選取文字按 <kbd>Ctrl</kbd>+<kbd>B</kbd> 加粗；選取文字後<b>貼上網址</b>或按 <kbd>Ctrl</kbd>+<kbd>K</kbd>，就變成連結；輸入 <code>[[技能名稱]]</code> 或按「技能連結」，會連到該技能；不是名稱時會變成搜尋連結（例如 <code>主動技能：[[勇士之村]]</code>）。'; renderSecs(); }
       }
       return;
     }
@@ -638,8 +699,9 @@ function parseQuery(raw) {
     // 有改過時，取消要按兩次（頁面上提示，不用跳出視窗）
     if (e.target.id === 'hCancel') { if (homeDirty() && !cancelArmed) { cancelArmed = true; $('hMsg').textContent = '有尚未儲存的修改，再按一次「取消」放棄'; return; } homeEditing = false; renderHome(); return; }
     if (e.target.id !== 'hSave') return;
-    const nx = { season: $('hSeason').value.trim(), start: $('hStart').value, end: $('hEnd').value, body: edBody(), updatedAt: new Date().toLocaleDateString('sv') };
-    if (nx.start && nx.end && nx.end < nx.start) { $('hMsg').textContent = '結束日期早於開始日期'; return; }
+    const nx = { season: $('hSeason').value.trim(), start: joinDT($('hStart').value, $('hStartT').value), end: joinDT($('hEnd').value, $('hEndT').value), body: edBody(), updatedAt: new Date().toLocaleDateString('sv') };
+    if ((!$('hStart').value && $('hStartT').value) || (!$('hEnd').value && $('hEndT').value)) { $('hMsg').textContent = '有填時間時，請一併選擇日期'; return; }
+    if (nx.start && nx.end && parseTW(nx.end, true) < parseTW(nx.start)) { $('hMsg').textContent = '結束時間早於開始時間'; return; }
     const txt = '/* 由 LOOTANIA Wiki 首頁「編輯」自動產生（賽季資訊欄），請勿手動修改格式 */\nwindow.LOOTANIA_HOME = ' + JSON.stringify(nx, null, 2) + ';\n';
     try {
       if (window.WIKI_PREVIEW) { homeNotice = '預覽版：已更新畫面，但不會寫入檔案'; }
@@ -678,7 +740,6 @@ function parseQuery(raw) {
     // 沒有等級資料（符文）就拿掉「需求等級」排序，預設改用編號
     const hasLv = p.items.some(s => SC.levelsOf(s).length); $('sort').querySelector('[value=lv]').hidden = !hasLv; p.defSort = hasLv ? 'lv' : 'id';
     $('sort').value = params.get('sort') || p.defSort; if ($('sort').selectedOptions[0]?.hidden) $('sort').value = p.defSort;
-    $('onlyVerify').checked = params.get('verify') === '1';
     $('home').hidden = true; $('none').hidden = true; $('app').hidden = false;
     renderTags(); render();
   }
@@ -687,18 +748,21 @@ function parseQuery(raw) {
   }
   function render() {
     const raw = $('q').value.trim(), Q = parseQuery(raw), w = $('weapon').value;
-    let list = page.items.filter(s => okWeapon(s, w) && (!$('onlyVerify').checked || (s.verify || []).length)
+    let list = page.items.filter(s => okWeapon(s, w)
       && [...selTags].every(t => (s.tags || []).includes(t) || (s.compatTags || []).includes(t)) && Q.test(searchText(s)));
     const so = $('sort').value;
-    list.sort(so === 'lv' ? (a, b) => firstLv(a) - firstLv(b) || a.id.localeCompare(b.id) : so === 'name' ? (a, b) => a.name.localeCompare(b.name, 'zh-Hant') : (a, b) => a.id.localeCompare(b.id));
+    const byId = (a, b) => a.id.localeCompare(b.id);
+    // 價格：取獲得方式裡的數字（例如「商店購買(160000)」）；沒有價格的排在最後
+    const pr = s => { const m = String(s.source || '').replace(/[,，]/g, '').match(/\d+/g); return m ? Math.max(...m.map(Number)) : null; };
+    const byPrice = dir => (a, b) => { const x = pr(a), y = pr(b); if (x === y) return firstLv(a) - firstLv(b) || byId(a, b); if (x == null) return 1; if (y == null) return -1; return (x - y) * dir; };
+    list.sort(so === 'lv' ? (a, b) => firstLv(a) - firstLv(b) || byId(a, b) : so === 'name' ? (a, b) => a.name.localeCompare(b.name, 'zh-Hant') : so === 'price' ? byPrice(1) : so === 'price-d' ? byPrice(-1) : byId);
     useSheet(src);
     $('list').innerHTML = list.length ? `<section class="panel"><h2>${esc(page.label)} <span class="n">/${list.length}</span></h2>
       <div class="sk-wrap"><table class="items"><tbody>${list.map(s => SC.row(s, meta, Q.terms)).join('')}</tbody></table></div></section>`
       : `<p class="empty">${page.items.length ? '沒有符合條件的項目' : '尚無資料'}</p>`;
-    $('count').textContent = `顯示 ${list.length} / ${page.items.length}`;
     // 篩選條件記在網址，重新整理或分享連結時保留
     const p = new URLSearchParams(); if (raw) p.set('q', raw); if (w) p.set('weapon', w); if (selTags.size) p.set('tags', [...selTags].join(','));
-    if (so !== page.defSort) p.set('sort', so); if ($('onlyVerify').checked) p.set('verify', '1');
+    if (so !== page.defSort) p.set('sort', so);
     const h = `#/${page.id}${p.toString() ? '?' + p : ''}`; listHash[page.id] = h;
     if (location.hash !== h && !location.hash.startsWith(`#/${page.id}/`)) { try { history.replaceState(null, '', h); } catch (e) {} }
   }
@@ -791,7 +855,7 @@ function parseQuery(raw) {
   /* ---------- 篩選事件 ---------- */
   $('tags').addEventListener('click', e => { const b = e.target.closest('button[data-t]'); if (!b) return; const t = b.dataset.t; selTags.has(t) ? selTags.delete(t) : selTags.add(t); renderTags(); render(); });
   let qt; $('q').addEventListener('input', () => { clearTimeout(qt); qt = setTimeout(render, 120); });
-  $('sort').onchange = render; $('onlyVerify').onchange = render; $('weapon').onchange = render;
+  $('sort').onchange = render; $('weapon').onchange = render;
   // 名稱旁的編號連結：改成 #/頁面/編號，複製後可直接開到該項目
   document.addEventListener('click', e => { const a = e.target.closest('a.it-id,a.sk-name,td.ic .icon'); if (!a) return;
     const id = a.matches('.icon') ? a.closest('tr')?.id : (a.getAttribute('href') || '').slice(1); const p = pageOfItem(id); if (!p) return;
