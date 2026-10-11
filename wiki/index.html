@@ -271,6 +271,7 @@ a.wl.miss{color:var(--warn);border-bottom-style:dashed}
   <div class="crumb" id="crumb"></div>
   <div id="home" hidden></div>
   <div id="app" hidden>
+    <nav class="toc" id="cats" aria-label="分類" hidden></nav>
     <div class="filters">
       <input type="search" id="q" placeholder="篩選名稱、說明、效果、獲得方式（空格＝且，|＝或，-詞＝排除）" aria-label="篩選">
       <select id="weapon" aria-label="武器"><option value="">全部武器</option></select>
@@ -730,7 +731,21 @@ function parseQuery(raw) {
     請把 ${miss.map(s => `<b>${s.js}</b>、<b>${s.sheet}</b>`).join('、')} 放進 <b>${VDIR || '這個頁面所在的資料夾'}</b>${VERS ? '，並確認 <b>' + DATA_DIR + 'versions.js</b> 裡的資料夾名稱正確' : ''}。</div>`;
 
   /* ---------- 列表頁 ---------- */
-  let page = null, src = null, meta = null, allTags = [], selTags = new Set(), isSearch = false;
+  let page = null, src = null, meta = null, allTags = [], selTags = new Set(), isSearch = false, curCat = '';
+  // 列表上方的分類（可重疊，例如究極突刺同時是傷害與位移技能）
+  const CATS = {
+    active: [
+      { id: 'dmg',   label: '傷害技能', test: s => /造成[^，。；]*傷害/.test(s.effect || '') },
+      { id: 'move',  label: '位移技能', test: s => (s.tags || []).includes('位移') },
+      { id: 'curse', label: '詛咒技能', test: s => (s.tags || []).includes('詛咒') },
+      // 輔助：已有效果資料、但不屬於傷害／位移／詛咒（例如隱身術、群體治癒）
+      { id: 'sup',   label: '輔助技能', test: s => !!String(s.effect || '').trim() && !CATS.active.slice(0, 3).some(c => c.test(s)) },
+    ],
+  };
+  const catsOf = () => (page && CATS[page.id]) || [];
+  function renderCats() { const C = catsOf(); $('cats').hidden = !C.length; if (!C.length) { curCat = ''; return; }
+    $('cats').innerHTML = [{ id: '', label: '全部', n: page.items.length }, ...C.map(c => ({ ...c, n: page.items.filter(c.test).length }))]
+      .map(c => `<a href="#" data-c="${c.id}" class="${curCat === c.id ? 'on' : ''}">${esc(c.label)}<span class="n">/${c.n}</span></a>`).join(''); }
   const searchText = s => [s.name, s.id, s.group, s.desc, s.source, s.effect && SC.levelsOf(s).map(r => SC.effectAt(s, r)).join(' '), SC.runeEffect(s), ...(s.tags || []), ...(s.compatTags || []), ...(s.weapons || []), s.note].join(' ');
   const firstLv = s => { const r = SC.levelsOf(s)[0]; return r && r.req && r.req.level != null ? r.req.level : 9999; };
   const okWeapon = (s, w) => !w || !(s.weapons || []).length || s.weapons.some(x => x === w || ((meta.weaponGroups || {})[x] || []).includes(w));
@@ -755,24 +770,26 @@ function parseQuery(raw) {
     const hasLv = p.items.some(s => SC.levelsOf(s).length); $('sort').querySelector('[value=lv]').hidden = !hasLv; p.defSort = 'price';   // 預設：價格 低→高
     $('sort').value = params.get('sort') || p.defSort; if ($('sort').selectedOptions[0]?.hidden) $('sort').value = p.defSort;
     $('home').hidden = true; $('none').hidden = true; $('app').hidden = false;
-    renderTags(); render();
+    curCat = catsOf().some(c => c.id === params.get('cat')) ? params.get('cat') : '';
+    renderCats(); renderTags(); render();
   }
   function renderTags() {
     $('tags').innerHTML = allTags.map(t => `<button data-t="${esc(t)}" class="${selTags.has(t) ? 'on' : ''}" aria-pressed="${selTags.has(t)}">${esc(t)}</button>`).join('');
   }
   function render() {
     const raw = $('q').value.trim(), Q = parseQuery(raw), w = $('weapon').value;
-    let list = page.items.filter(s => okWeapon(s, w)
+    const cat = catsOf().find(c => c.id === curCat);
+    let list = page.items.filter(s => (!cat || cat.test(s)) && okWeapon(s, w)
       && [...selTags].every(t => (s.tags || []).includes(t) || (s.compatTags || []).includes(t)) && Q.test(searchText(s)));
     const so = $('sort').value;
     // 價格：取獲得方式裡的數字（例如「商店購買(160000)」）；沒有價格的排在最後
     list.sort(so === 'lv' ? (a, b) => firstLv(a) - firstLv(b) || byId(a, b) : so === 'name' ? (a, b) => a.name.localeCompare(b.name, 'zh-Hant') : so === 'price' ? byPrice(1) : so === 'price-d' ? byPrice(-1) : byId);
     useSheet(src);
-    $('list').innerHTML = list.length ? `<section class="panel"><h2>${esc(page.label)} <span class="n">/${list.length}</span></h2>
+    $('list').innerHTML = list.length ? `<section class="panel"><h2>${esc(cat ? cat.label : page.label)} <span class="n">/${list.length}</span></h2>
       <div class="sk-wrap"><table class="items"><tbody>${list.map(s => SC.row(s, meta, Q.terms)).join('')}</tbody></table></div></section>`
       : `<p class="empty">${page.items.length ? '沒有符合條件的項目' : '尚無資料'}</p>`;
     // 篩選條件記在網址，重新整理或分享連結時保留
-    const p = new URLSearchParams(); if (raw) p.set('q', raw); if (w) p.set('weapon', w); if (selTags.size) p.set('tags', [...selTags].join(','));
+    const p = new URLSearchParams(); if (cat) p.set('cat', cat.id); if (raw) p.set('q', raw); if (w) p.set('weapon', w); if (selTags.size) p.set('tags', [...selTags].join(','));
     if (so !== page.defSort) p.set('sort', so);
     const h = `#/${page.id}${p.toString() ? '?' + p : ''}`; listHash[page.id] = h;
     if (location.hash !== h && !location.hash.startsWith(`#/${page.id}/`)) { try { history.replaceState(null, '', h); } catch (e) {} }
@@ -868,6 +885,7 @@ function parseQuery(raw) {
   addEventListener('hashchange', route);
 
   /* ---------- 篩選事件 ---------- */
+  $('cats').addEventListener('click', e => { const a = e.target.closest('a[data-c]'); if (!a) return; e.preventDefault(); curCat = a.dataset.c; renderCats(); render(); });
   $('tags').addEventListener('click', e => { const b = e.target.closest('button[data-t]'); if (!b) return; const t = b.dataset.t; selTags.has(t) ? selTags.delete(t) : selTags.add(t); renderTags(); render(); });
   let qt; $('q').addEventListener('input', () => { clearTimeout(qt); qt = setTimeout(render, 120); });
   $('sort').onchange = render; $('weapon').onchange = render;
