@@ -275,10 +275,10 @@ a.wl.miss{color:var(--warn);border-bottom-style:dashed}
       <input type="search" id="q" placeholder="篩選名稱、說明、效果、獲得方式（空格＝且，|＝或，-詞＝排除）" aria-label="篩選">
       <select id="weapon" aria-label="武器"><option value="">全部武器</option></select>
       <select id="sort" aria-label="排序">
+        <option value="price">價格 低→高</option>
         <option value="lv">需求等級 低→高</option>
         <option value="name">名稱</option>
         <option value="id">編號</option>
-        <option value="price">價格 低→高</option>
         <option value="price-d">價格 高→低</option>
       </select>
     </div>
@@ -735,6 +735,10 @@ function parseQuery(raw) {
   const firstLv = s => { const r = SC.levelsOf(s)[0]; return r && r.req && r.req.level != null ? r.req.level : 9999; };
   const okWeapon = (s, w) => !w || !(s.weapons || []).length || s.weapons.some(x => x === w || ((meta.weaponGroups || {})[x] || []).includes(w));
 
+  // 價格：取獲得方式裡的數字（例如「商店購買(160000)」）；沒有價格的排在最後；同價依需求等級、編號
+  const byId = (a, b) => a.id.localeCompare(b.id);
+  const pr = s => { const m = String(s.source || '').replace(/[,，]/g, '').match(/\d+/g); return m ? Math.max(...m.map(Number)) : null; };
+  const byPrice = dir => (a, b) => { const x = pr(a), y = pr(b); if (x === y) return firstLv(a) - firstLv(b) || byId(a, b); if (x == null) return 1; if (y == null) return -1; return (x - y) * dir; };
   function openPage(p, params) {
     page = p; src = SRC[p.src]; meta = src.meta; isSearch = false; $('crumb').hidden = false;
     $('crumb').innerHTML = `<a href="#/">首頁</a><span>›</span>${esc(p.menu)}<span>›</span>${esc(p.label)}`;
@@ -748,7 +752,7 @@ function parseQuery(raw) {
     selTags = new Set((params.get('tags') || '').split(',').filter(t => allTags.includes(t)));
     $('q').value = params.get('q') || ''; $('weapon').value = hasW ? (params.get('weapon') || '') : '';
     // 沒有等級資料（符文）就拿掉「需求等級」排序，預設改用編號
-    const hasLv = p.items.some(s => SC.levelsOf(s).length); $('sort').querySelector('[value=lv]').hidden = !hasLv; p.defSort = hasLv ? 'lv' : 'id';
+    const hasLv = p.items.some(s => SC.levelsOf(s).length); $('sort').querySelector('[value=lv]').hidden = !hasLv; p.defSort = 'price';   // 預設：價格 低→高
     $('sort').value = params.get('sort') || p.defSort; if ($('sort').selectedOptions[0]?.hidden) $('sort').value = p.defSort;
     $('home').hidden = true; $('none').hidden = true; $('app').hidden = false;
     renderTags(); render();
@@ -761,10 +765,7 @@ function parseQuery(raw) {
     let list = page.items.filter(s => okWeapon(s, w)
       && [...selTags].every(t => (s.tags || []).includes(t) || (s.compatTags || []).includes(t)) && Q.test(searchText(s)));
     const so = $('sort').value;
-    const byId = (a, b) => a.id.localeCompare(b.id);
     // 價格：取獲得方式裡的數字（例如「商店購買(160000)」）；沒有價格的排在最後
-    const pr = s => { const m = String(s.source || '').replace(/[,，]/g, '').match(/\d+/g); return m ? Math.max(...m.map(Number)) : null; };
-    const byPrice = dir => (a, b) => { const x = pr(a), y = pr(b); if (x === y) return firstLv(a) - firstLv(b) || byId(a, b); if (x == null) return 1; if (y == null) return -1; return (x - y) * dir; };
     list.sort(so === 'lv' ? (a, b) => firstLv(a) - firstLv(b) || byId(a, b) : so === 'name' ? (a, b) => a.name.localeCompare(b.name, 'zh-Hant') : so === 'price' ? byPrice(1) : so === 'price-d' ? byPrice(-1) : byId);
     useSheet(src);
     $('list').innerHTML = list.length ? `<section class="panel"><h2>${esc(page.label)} <span class="n">/${list.length}</span></h2>
@@ -803,7 +804,7 @@ function parseQuery(raw) {
     if (!s) { $('detail').innerHTML = `<p class="empty">${curV && curV.version ? `版本 ${esc(curV.version)} 沒有這個技能` : '找不到這個技能'}（${esc(id)}），可能是之後才新增，或已改名、刪除。<a href="${esc(back)}">回到${esc(p.label)}列表</a></p>`; return; }
     document.title = `${s.name} · ${p.label} · LOOTANIA Wiki`;
     const L = SC.levelsOf(s), cap = s.maxLevel || 0;
-    const order = p.items.slice().sort((a, b) => firstLv(a) - firstLv(b) || a.id.localeCompare(b.id)), oi = order.indexOf(s);
+    const order = p.items.slice().sort(byPrice(1)), oi = order.indexOf(s);
     const prev = order[oi - 1], next = order[oi + 1];
     const wg = meta.weaponGroups || {};
     const weapons = (s.weapons || []).map(w => wg[w] && !(wg[w].length === 1 && wg[w][0] === w) ? `${esc(w)}<small>（${wg[w].map(esc).join('、')}）</small>` : esc(w)).join('、');
