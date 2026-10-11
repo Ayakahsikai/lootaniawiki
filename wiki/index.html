@@ -240,8 +240,8 @@ td.ic .icon{cursor:pointer}
 @media (max-width:900px){.dt{grid-template-columns:1fr}.dt-side{order:-1}.dt-sticky{position:static}}
 .dt-runes .body{padding:10px 12px}
 .rn-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
-.rn-list a{display:flex;align-items:center;gap:10px;padding:4px 6px;border-radius:3px;color:var(--text)}
-.rn-list a:hover{background:#1a1a1a;text-decoration:none;color:#fff}
+.rn-list .rn-it{display:flex;align-items:center;gap:10px;padding:4px 6px;border-radius:3px;color:var(--text);cursor:default}   /* 只顯示提示框，不連到符文頁 */
+.rn-list .rn-it:hover{background:#1a1a1a;color:#fff}
 .rn-list .icon{width:36px;height:36px;flex:none}.rn-list .icon .sk-spr{width:36px;height:36px}
 .rn-t{display:flex;flex-direction:column;min-width:0;line-height:1.35}.rn-t b{font-weight:500;color:var(--white)}.rn-t small{color:#e2725b;font-size:11.5px}
 a.wl{color:var(--accent);border-bottom:1px dotted currentColor}a.wl:hover{text-decoration:none;color:#e0bd72}
@@ -786,10 +786,14 @@ function parseQuery(raw) {
   function runesFor(s) {
     const R = SRC.runes; if (!R.ok) return '';
     const tags = new Set(s.tags || []);
-    const hit = R.items.map(r => [r, (r.compatTags || []).filter(x => tags.has(x))]).filter(([, m]) => m.length);
+    // 相容標籤：一般標籤＝技能有其中任一個；「全部」＝所有技能；「非X」＝技能不能有 X
+    const match = r => { const c = r.compatTags || [], neg = c.filter(x => /^非./.test(x)).map(x => x.slice(1));
+      if (neg.some(n => tags.has(n))) return []; if (c.includes('全部')) return ['全部'];
+      const pos = c.filter(x => x !== '全部' && !/^非./.test(x)); return pos.length ? pos.filter(x => tags.has(x)) : (neg.length ? c.filter(x => /^非./.test(x)) : []); };
+    const hit = R.items.map(r => [r, match(r)]).filter(([, m]) => m.length);
     useSheet(R);
     const html = `<section class="panel dt-runes"><h2>可搭配的符文 <span class="n">/${hit.length}</span></h2><div class="body">
-      ${hit.length ? `<ul class="rn-list">${hit.map(([r, m]) => `<li><a href="#/runes/${esc(r.id)}" data-tip="${esc(r.id)}"><span class="icon">${SC.iconHTML(r, R.meta)}</span><span class="rn-t"><b>${esc(r.name)}</b><small>${m.map(x => `【${esc(x)}】`).join('')}</small></span></a></li>`).join('')}</ul>`
+      ${hit.length ? `<ul class="rn-list">${hit.map(([r, m]) => `<li><span class="rn-it" data-tip="${esc(r.id)}"><span class="icon">${SC.iconHTML(r, R.meta)}</span><span class="rn-t"><b>${esc(r.name)}</b><small>${m.map(x => `【${esc(x)}】`).join('')}</small></span></span></li>`).join('')}</ul>`
         : '<p class="sk-mut">沒有相容標籤符合的符文。</p>'}
 </div></section>`;
     useSheet(SRC.skills); return html;
