@@ -586,10 +586,13 @@ function parseQuery(raw) {
   function mdLite(src) {
     // [[技能名稱]]＝站內連結（技能→詳細頁、符文→列表）；[顯示文字](網址)＝命名連結；單獨的網址也會自動變成連結
     const bold = h => h.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+    // 連到本站（#/… 或 https://…/lootaniawiki/#/…）：同一頁內切換，不開新分頁；本機版也能用
+    const siteHash = url => { if (/^#\//.test(url)) return url; const m = /^https?:\/\/[^\/]+\/lootaniawiki\/?(?:index\.html)?(#\/.*)$/.exec(url); return m ? m[1] : null; };
     const inl = s => { const L = [], tok = h => `\u0000${L.push(h) - 1}\u0000`;
       s = String(s).replace(/\[\[([^\]\n|]+)(?:\|([^\]\n]+))?\]\]/g, (_, name, label, off, all) => wikiLink(name.trim(), (label || name).trim(), all.slice(0, off)))
         .replace(/\u0001(\d+)\u0001/g, (_, i) => tok(WL[+i]))
-        .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, txt, url) => tok(`<a href="${esc(url)}" target="_blank" rel="noopener">${bold(esc(txt))}</a>`));
+        .replace(/\[([^\]\n]+)\]\(((?:https?:\/\/|#\/)[^\s)]+)\)/g, (_, txt, url) => { const h = siteHash(url);
+          return tok(h ? `<a href="${esc(h)}">${bold(esc(txt))}</a>` : `<a href="${esc(url)}" target="_blank" rel="noopener">${bold(esc(txt))}</a>`); });
       WL.length = 0;
       return bold(esc(s)).replace(/(https?:\/\/[^\s<\u0000]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\u0000(\d+)\u0000/g, (_, i) => L[+i]); };
     let out = '', list = false, para = [];
