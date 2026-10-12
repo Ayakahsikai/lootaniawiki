@@ -462,7 +462,7 @@ function parseQuery(raw) {
       if (it.attackSpeed != null) out.push(`<div class="ln"><span class="k">攻擊速度:</span> <b>${esc((meta.attackSpeeds || {})[it.attackSpeed] || '?')}(${esc(it.attackSpeed)})</b></div>`);
       for (const m of it.base || []) out.push('text' in m ? `<div class="ln">${hl(m.text, terms)}</div>` : `<div class="ln"><span class="k">${hl(m.stat, terms)}:</span> <b>${esc(val(m))}</b></div>`);
       return out.join(''); }
-    const mods = (it, terms) => (it.affix || it.hidden || []).map(m => `<div class="${'text' in m ? 'tx' : ''}">${hl(modText(m), terms)}</div>`).join('');
+    const mods = (it, terms) => (it.affix || it.hidden || []).map(m => `<div class="">${hl(modText(m), terms)}</div>`).join('');   // 純文字詞綴和數值詞綴同樣式
     const iconHTML = it => typeof it.iconIndex === 'number' && it.iconIndex >= 0 ? (SC.sprite(it.iconIndex) || `<span>${esc(typeOf(it))}</span>`) : `<span>${esc(typeOf(it) || '?')}</span>`;
     function row(it, meta, terms) { const md = mods(it, terms);
       return `<tr id="${esc(it.id)}"><td class="ic"><div class="icon">${iconHTML(it)}</div></td><td>
