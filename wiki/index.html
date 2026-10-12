@@ -803,7 +803,7 @@ function parseQuery(raw) {
     const w = $('weapon').value, ws = [...$('weapon').options].map(o => o.value).filter(Boolean), all = page.items.filter(x => x.slot === '武器');
     sub.innerHTML = [['', '全部武器', all.length], ...ws.map(v => [v, v, all.filter(x => x.weaponType === v).length])]
       .map(([v, l, n]) => `<a href="#" data-w="${esc(v)}" class="${w === v ? 'on' : ''}">${esc(l)}<span class="n">/${n}</span></a>`).join(''); }
-  const searchText = s => src && src.card ? src.card.searchText(s) : [s.name, s.id, s.group, s.desc, s.source, s.effect && SC.levelsOf(s).map(r => SC.effectAt(s, r)).join(' '), SC.runeEffect(s), ...(s.tags || []), ...(s.compatTags || []), ...(s.weapons || []), s.note].join(' ');
+  const searchText = s => s.slot !== undefined && !s.levels ? EQ.searchText(s) : [s.name, s.id, s.group, s.desc, s.source, s.effect && SC.levelsOf(s).map(r => SC.effectAt(s, r)).join(' '), SC.runeEffect(s), ...(s.tags || []), ...(s.compatTags || []), ...(s.weapons || []), s.note].join(' ');
   const firstLv = s => { if (s.req && !s.levels) return s.req.level || 0; const r = SC.levelsOf(s)[0]; return r && r.req && r.req.level != null ? r.req.level : 9999; };
   const okWeapon = (s, w) => !w || (src && src.card ? s.weaponType === w : !(s.weapons || []).length || s.weapons.some(x => x === w || ((meta.weaponGroups || {})[x] || []).includes(w)));
 
