@@ -184,6 +184,27 @@ main{flex:1 0 auto;width:100%;box-sizing:border-box}
 .site-foot .ft-bot{max-width:1280px;margin:0 auto;padding:10px 14px 16px;font-size:12px;color:#666}
 @media (max-width:560px){.site-foot .ft-g{flex-direction:column;gap:2px}}
 
+/* ---- 搜尋列固定在選單下方、回到最上面按鈕 ---- */
+.filters{position:sticky;top:var(--nav-h,47px);z-index:15;background:var(--bg);margin:0 -14px 12px;padding:8px 14px;box-shadow:0 6px 8px -6px rgba(0,0,0,.8)}
+table.items tr{scroll-margin-top:calc(var(--nav-h,47px) + 70px)}
+.to-top{position:fixed;right:18px;bottom:18px;z-index:30;width:42px;height:42px;border-radius:50%;border:1px solid var(--line-2);background:rgba(27,27,27,.92);color:var(--accent);font-size:15px;line-height:1;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.6)}
+.to-top:hover{background:#2a2410;border-color:var(--accent)}
+@media (max-width:560px){.to-top{right:12px;bottom:12px;width:38px;height:38px}}
+
+/* ---- 上方全站搜尋 ---- */
+.gsearch input{width:240px;font-size:12.5px;padding:4px 8px}
+.gs-drop{position:absolute;right:0;top:calc(100% + 6px);width:min(380px,92vw);max-height:min(70vh,560px);overflow:auto;background:#151515;border:1px solid var(--line-2);border-radius:4px;box-shadow:0 10px 26px rgba(0,0,0,.75);z-index:40;padding:4px 0}
+.gs-g+.gs-g{border-top:1px solid var(--line)}
+.gs-h{display:flex;justify-content:space-between;padding:6px 10px 3px;font-size:11.5px;color:var(--accent)}.gs-h span{color:var(--muted)}
+.gs-it{display:flex;align-items:center;gap:8px;padding:4px 10px;color:var(--text)}
+.gs-it:hover,.gs-it.on{background:#2a2410;text-decoration:none}
+.gs-it .icon{width:28px;height:28px;flex:0 0 28px}
+.gs-it b{font-weight:400;color:var(--white);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gs-it small{color:#555;font:11px var(--f-mono)}
+.gs-more{display:block;padding:4px 10px 6px;font-size:12px}
+.gs-empty{padding:10px;color:var(--muted);font-size:12.5px}
+@media (max-width:720px){.gs-drop{left:0;right:auto;width:100%}}
+
 /* 下拉選單：單欄，樣式同遊戲資料站 */
 .drop{columns:1;width:auto;min-width:150px;padding:4px 0}
 .drop a,.drop .off{padding:7px 16px;font-size:14px;white-space:nowrap}
@@ -266,11 +287,12 @@ a.wl.q{color:#8fd18f}a.wl.q:hover{color:#b5e6b5}
 a.wl.miss{color:var(--warn);border-bottom-style:dashed}
 .wl-pick{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:8px;padding:8px;border:1px solid var(--accent);border-radius:4px;background:#0b0b0b}
 .wl-pick input{flex:1;min-width:180px}.wl-msg{width:100%;font-size:12px;color:var(--warn)}.wl-msg:empty{display:none}
-.ver-sel{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);white-space:nowrap}
+.gsearch{margin-left:auto;position:relative}
+.ver-sel{margin-left:10px;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);white-space:nowrap}
 .ver-sel select{font-size:12.5px;padding:3px 6px;max-width:220px}
 .ver-old{margin:0 0 10px;padding:8px 12px;border:1px solid #5a4826;background:#1d1708;color:#e9d3a3;border-radius:4px;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .ver-old b{color:#fff}.ver-old button{margin-left:auto;font-size:12px;padding:3px 10px;border-color:var(--accent);color:var(--accent)}
-@media (max-width:720px){.ver-sel{margin-left:0}}
+@media (max-width:720px){.ver-sel{margin-left:0}.gsearch{order:5;width:100%;margin:0 0 6px}.gsearch input{width:100%}}
 .drop-hint{border:1px dashed var(--line-2);border-radius:4px;padding:24px;color:var(--muted);line-height:1.9;margin-top:10px}
 .drop-hint b{color:var(--white)}
 </style>
@@ -280,6 +302,7 @@ a.wl.miss{color:var(--warn);border-bottom-style:dashed}
   <div class="nav-in">
     <a class="brand" href="#/">LOOTANIA <small>Wiki</small></a>
     <ul class="menu" id="menu"></ul>
+    <div class="gsearch" id="gsBox"><input type="search" id="gq" placeholder="搜尋全部資料（技能、符文、裝備…）" aria-label="搜尋全部資料" autocomplete="off"><div class="gs-drop" id="gsDrop" role="listbox" hidden></div></div>
     <label class="ver-sel" id="verBox" hidden><span>版本</span><select id="ver" aria-label="資料版本"></select></label>
   </div>
 </header>
@@ -308,6 +331,7 @@ a.wl.miss{color:var(--warn);border-bottom-style:dashed}
   <div id="none" hidden></div>
 </main>
 <footer class="site-foot" id="foot" hidden></footer>
+<button class="to-top" id="toTop" type="button" title="回到最上面" aria-label="回到最上面" hidden>▲</button>
 <div class="itip sk" id="tip" hidden></div>
 <script>
 /* 技能顯示共用：技能列表與技能編輯器的預覽都用這支，確保兩邊顯示一致 */
@@ -1022,7 +1046,11 @@ function parseQuery(raw) {
     useSheet(s0); tip.className = s0.card ? 'itip' : 'itip sk'; tip.innerHTML = cardOf(s0).tip(s, s0.meta); tip.hidden = false; placeTip(e); });
   document.addEventListener('mousemove', e => { if (!tip.hidden) placeTip(e); });
   document.addEventListener('mouseout', e => { if (e.target.closest('[data-tip]') && !e.relatedTarget?.closest?.('[data-tip]')) tip.hidden = true; });
-  addEventListener('scroll', () => { tip.hidden = true; }, { passive: true });
+  addEventListener('scroll', () => { tip.hidden = true; $('toTop').hidden = scrollY < 400; }, { passive: true });
+  // 回到最上面；搜尋列固定在選單下方（依選單實際高度，手機版選單換行時也對得上）
+  $('toTop').addEventListener('click', () => { scrollTo({ top: 0, behavior: 'smooth' }); });
+  const setNavH = () => { const n = document.querySelector('.nav'); if (n) document.documentElement.style.setProperty('--nav-h', n.offsetHeight + 'px'); };
+  addEventListener('resize', setNavH); setNavH();
 
   /* ---------- 版本切換：預設最新版；網址 ?v=資料夾 可指定版本 ---------- */
   const VL = window.LOOTANIA_VERSIONS;
@@ -1051,6 +1079,34 @@ function parseQuery(raw) {
   }
   $('ver').addEventListener('change', e => setVersion(VERS.versions[+e.target.value]));
   $('verOld').addEventListener('click', e => { if (e.target.id === 'verLatest') setVersion(latestV); });
+  /* ---------- 上方全站搜尋：所有分類一起找，名稱開頭符合的排最前面 ---------- */
+  let gsSel = -1;
+  function gsRender() {
+    const raw = $('gq').value.trim(), drop = $('gsDrop'); gsSel = -1;
+    if (!raw) { drop.hidden = true; drop.innerHTML = ''; return; }
+    const Q = parseQuery(raw), low = raw.toLowerCase(), groups = [];
+    for (const p of PAGES) { const s0 = SRC[p.src]; if (!p.items.length) continue;
+      const hit = p.items.filter(x => Q.test(searchText(x))).map(x => { const n = String(x.name || '').toLowerCase(); return [x, n.startsWith(low) ? 0 : n.includes(low) ? 1 : 2]; })
+        .sort((a, b) => a[1] - b[1] || String(a[0].name).localeCompare(String(b[0].name), 'zh-Hant')).map(a => a[0]);
+      if (hit.length) groups.push([p, s0, hit]); }
+    if (!groups.length) { drop.innerHTML = `<div class="gs-empty">找不到「${esc(raw)}」</div>`; drop.hidden = false; return; }
+    const MAX = 6, hl = t => { let h = esc(t); for (const x of Q.terms || []) if (x) h = h.split(esc(x)).join(`<mark>${esc(x)}</mark>`); return h; };
+    drop.innerHTML = groups.map(([p, s0, hit]) => { useSheet(s0); const card = cardOf(s0);
+      return `<div class="gs-g"><div class="gs-h">${esc(p.label)}<span>${hit.length} 筆</span></div>${hit.slice(0, MAX).map(x => `<a class="gs-it" href="#/${p.id}/${esc(x.id)}" data-tip="${esc(x.id)}"><span class="icon">${card.iconHTML(x, s0.meta)}</span><b>${hl(x.name || x.id)}</b><small>${esc(x.id)}</small></a>`).join('')}
+        ${hit.length > MAX ? `<a class="gs-more" href="#/${p.id}?q=${encodeURIComponent(raw)}">在${esc(p.label)}查看全部 ${hit.length} 筆 ›</a>` : ''}</div>`; }).join('');
+    drop.hidden = false;
+  }
+  const gsItems = () => [...$('gsDrop').querySelectorAll('a')];
+  const gsClose = () => { $('gsDrop').hidden = true; tip.hidden = true; };
+  let gqt; $('gq').addEventListener('input', () => { clearTimeout(gqt); gqt = setTimeout(gsRender, 100); });
+  $('gq').addEventListener('focus', () => { if ($('gq').value.trim()) gsRender(); });
+  $('gq').addEventListener('keydown', e => { const it = gsItems();
+    if (e.key === 'Escape') { gsClose(); $('gq').blur(); return; }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { if (!it.length) return; e.preventDefault(); gsSel = (gsSel + (e.key === 'ArrowDown' ? 1 : -1) + it.length) % it.length;
+      it.forEach((a, i) => a.classList.toggle('on', i === gsSel)); it[gsSel].scrollIntoView({ block: 'nearest' }); return; }
+    if (e.key === 'Enter') { const a = it[gsSel] || it[0]; if (a) { e.preventDefault(); location.hash = a.getAttribute('href'); gsClose(); $('gq').blur(); } } });
+  $('gsDrop').addEventListener('click', e => { if (e.target.closest('a')) gsClose(); });
+  document.addEventListener('click', e => { if (!e.target.closest('#gsBox')) gsClose(); });
   /* ---------- 頁尾：感謝名單（data/credits.js，不分版本） ---------- */
   function renderFoot() {
     const C = window.LOOTANIA_CREDITS, el = $('foot'); if (!el) return;
