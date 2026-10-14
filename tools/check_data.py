@@ -13,8 +13,32 @@ def load_js(path, var, required=True):
     t = open(path, encoding='utf-8').read()
     m = re.search(r'window\.' + var + r'\s*=\s*', t)
     if not m: errs.append(f'{rel(path)}: 找不到 window.{var} =（檔案格式不對，請用編輯器重新存檔）'); return None
-    try: return json.loads(t[m.end():].rstrip().rstrip(';'))
-    except Exception as e: errs.append(f'{rel(path)}: 內容不是正確的 JSON（{e}）'); return None
+    body = t[m.end():].rstrip().rstrip(';')
+    try: return json.loads(body)
+    except Exception: pass
+    try: return json.loads(relax(body))   # 手動編輯的檔案（credits.js、home.js）：容許註解與最後一項後面的逗號
+    except Exception as e:
+        ln = body[:getattr(e, 'pos', 0) or 0].count('\n') + t[:m.end()].count('\n') + 1
+        errs.append(f'{rel(path)}: 第 {ln} 行附近格式不對（{e}）。名字要用雙引號 " 包起來，項目之間用逗號分隔'); return None
+def relax(s):
+    """去掉字串以外的 // 、/* */ 註解，以及 ] 或 } 前面多出來的逗號（瀏覽器可以，JSON 不行）。"""
+    out, i, n, q = [], 0, len(s), None
+    while i < n:
+        c = s[i]
+        if q:
+            out.append(c)
+            if c == '\\' and i + 1 < n: out.append(s[i + 1]); i += 2; continue
+            if c == q: q = None
+            i += 1; continue
+        if c in '"\'': q = c; out.append(c); i += 1; continue
+        if s.startswith('//', i): j = s.find('\n', i); i = n if j < 0 else j; continue
+        if s.startswith('/*', i): j = s.find('*/', i + 2); i = n if j < 0 else j + 2; continue
+        if c == ',':
+            j = i + 1
+            while j < n and s[j] in ' \t\r\n': j += 1
+            if j < n and s[j] in ']}': i += 1; continue
+        out.append(c); i += 1
+    return ''.join(out)
 def check_list(d, path, key, vdir):
     if d is None: return
     items = d.get(key)
