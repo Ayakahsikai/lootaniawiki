@@ -48,6 +48,9 @@ window.LOOTANIA_VERSIONS = {
 - 圖示：每件裝備的 `iconIndex` 對應 `equipment-icons.png` 的格子（0 起算、由左到右、由上到下，格子為正方形）。沒寫 `iconSheet` 時，網頁會依圖片尺寸自動推算欄數。
 - 沒有放裝備資料的版本，選單會顯示「尚無資料」。
 
+## 頁尾感謝名單
+- 編輯 `data/credits.js`（不分版本）：groups 裡每組有 label 和 names，名字可寫字串或 `{ name, url }`。檔案不存在時頁尾只顯示網站名稱與資料版本。
+
 ## 部署前自動檢查
 `versions.js` 格式、`latest` 是否在清單裡、版本名稱／資料夾是否重複、每個版本資料夾是否存在；
 每個版本的 `skills.js`／`runes.js` 格式、編號是否重複、是否有名稱、圖示表是否存在、圖示編號是否超出範圍、`.json` 與 `.js` 是否一致；

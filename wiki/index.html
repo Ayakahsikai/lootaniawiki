@@ -170,6 +170,20 @@ mark{background:rgba(201,163,91,.33);color:inherit;border-radius:2px}
 .sk-src span{display:block;color:#aab0e8;font-size:12px}
 .ln b.sk-srcv{color:#9fdc92}
 
+/* ---- 頁尾：感謝名單（內容少時也貼在最下方） ---- */
+body{display:flex;flex-direction:column;min-height:100vh}
+main{flex:1 0 auto;width:100%;box-sizing:border-box}
+.site-foot{border-top:1px solid var(--line);background:var(--panel);margin-top:24px}
+.site-foot .ft-in{max-width:1280px;margin:0 auto;padding:18px 14px 6px}
+.site-foot h2{margin:0 0 10px;font-size:14px;color:var(--accent);font-weight:600;letter-spacing:.05em}
+.site-foot .ft-g{display:flex;gap:10px;align-items:baseline;margin:0 0 8px;font-size:13px}
+.site-foot .ft-g>b{flex:0 0 auto;min-width:5em;color:var(--muted);font-weight:400}
+.site-foot .ft-n{display:flex;flex-wrap:wrap;gap:4px 14px}
+.site-foot .ft-n span,.site-foot .ft-n a{color:var(--white)}.site-foot .ft-n a{text-decoration:underline;text-underline-offset:2px}
+.site-foot .ft-note{margin:8px 0 0;font-size:12.5px;color:var(--muted)}
+.site-foot .ft-bot{max-width:1280px;margin:0 auto;padding:10px 14px 16px;font-size:12px;color:#666}
+@media (max-width:560px){.site-foot .ft-g{flex-direction:column;gap:2px}}
+
 /* 下拉選單：單欄，樣式同遊戲資料站 */
 .drop{columns:1;width:auto;min-width:150px;padding:4px 0}
 .drop a,.drop .off{padding:7px 16px;font-size:14px;white-space:nowrap}
@@ -293,6 +307,7 @@ a.wl.miss{color:var(--warn);border-bottom-style:dashed}
   <div id="detail" hidden></div>
   <div id="none" hidden></div>
 </main>
+<footer class="site-foot" id="foot" hidden></footer>
 <div class="itip sk" id="tip" hidden></div>
 <script>
 /* 技能顯示共用：技能列表與技能編輯器的預覽都用這支，確保兩邊顯示一致 */
@@ -433,6 +448,7 @@ function parseQuery(raw) {
 <script>window.WIKI_DATA_DIR = 'data/';</script>
 <script src="data/versions.js"></script>
 <script src="data/home.js"></script>
+<script src="data/credits.js"></script>
 <script>
 (() => {
   const $ = id => document.getElementById(id), SC = SkillCard, esc = SC.esc;
@@ -1027,7 +1043,7 @@ function parseQuery(raw) {
     const inl = window.WIKI_INLINE && window.WIKI_INLINE[v.dir];   // 預覽版：資料直接內嵌
     for (const [k, s] of Object.entries(SRC)) { window[s.var] = undefined; if (inl) window[s.var] = inl[k] || inl[s.list]; else await loadScript(VDIR + s.js); }
     initData(); for (const k of Object.keys(listHash)) delete listHash[k];
-    renderVer(); route();
+    renderVer(); renderFoot(); route();
   }
   function setVersion(v) {
     try { const u = new URL(location.href); if (v === latestV) u.searchParams.delete('v'); else u.searchParams.set('v', v.dir); history.replaceState(null, '', u.href); } catch (e) {}
@@ -1035,6 +1051,19 @@ function parseQuery(raw) {
   }
   $('ver').addEventListener('change', e => setVersion(VERS.versions[+e.target.value]));
   $('verOld').addEventListener('click', e => { if (e.target.id === 'verLatest') setVersion(latestV); });
+  /* ---------- 頁尾：感謝名單（data/credits.js，不分版本） ---------- */
+  function renderFoot() {
+    const C = window.LOOTANIA_CREDITS, el = $('foot'); if (!el) return;
+    const groups = C && Array.isArray(C.groups) ? C.groups.filter(g => g && Array.isArray(g.names) && g.names.some(n => n && (typeof n === 'string' ? n.trim() : n.name))) : [];
+    const nm = n => { const name = typeof n === 'string' ? n : (n && n.name) || '', url = n && typeof n === 'object' && /^https?:\/\//.test(n.url || '') ? n.url : '';
+      return name.trim() ? (url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(name)}</a>` : `<span>${esc(name)}</span>`) : ''; };
+    const ver = curV && curV.version ? `資料版本 ${esc(curV.version)}` : '';
+    el.innerHTML = `${groups.length || (C && C.note) ? `<div class="ft-in"><h2>${esc((C && C.title) || '感謝名單')}</h2>
+      ${groups.map(g => `<div class="ft-g"><b>${esc(g.label || '')}</b><div class="ft-n">${g.names.map(nm).filter(Boolean).join('')}</div></div>`).join('')}
+      ${C && C.note ? `<p class="ft-note">${esc(C.note)}</p>` : ''}</div>` : ''}
+      <div class="ft-bot">LOOTANIA Wiki${ver ? ' · ' + ver : ''}</div>`;
+    el.hidden = false;
+  }
   (function boot() {
     if (!VERS) { loadVersion({ version: '', dir: '' }); return; }   // 沒有 versions.js：直接讀資料夾裡的 skills.js（舊結構）
     let want = null; try { want = new URLSearchParams(location.search).get('v'); } catch (e) {}

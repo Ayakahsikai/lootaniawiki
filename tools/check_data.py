@@ -96,6 +96,14 @@ if h is not None:
         st = h['start'] if 'T' in h['start'] else h['start'] + 'T00:00'
         en = h['end'] if 'T' in h['end'] else h['end'] + 'T23:59'
         if en < st: errs.append('home.js: 結束時間早於開始時間')
+cr = load_js(os.path.join(D, 'credits.js'), 'LOOTANIA_CREDITS', required=False)   # 頁尾感謝名單（選用）
+if cr is not None:
+    gs = cr.get('groups')
+    if gs is not None and not isinstance(gs, list): errs.append('credits.js: groups 應為陣列')
+    for g in gs or []:
+        if not isinstance(g, dict) or not isinstance(g.get('names', []), list): errs.append(f'credits.js: 分組格式不對（{g}）'); continue
+        for n in g.get('names', []):
+            if not (isinstance(n, str) or (isinstance(n, dict) and n.get('name'))): errs.append(f'credits.js: 「{g.get("label")}」裡有無法辨識的名字（{n}）')
 gh = os.environ.get('GITHUB_ACTIONS') == 'true'
 for w in warns: print(f'::warning::{w}' if gh else f'警告：{w}')
 for e in errs: print(f'::error::{e}' if gh else f'錯誤：{e}')
