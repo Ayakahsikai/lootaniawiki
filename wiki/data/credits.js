@@ -9,7 +9,6 @@ window.LOOTANIA_CREDITS = {
   "title": "感謝名單",
   "groups": [
     { "label": "資料提供", "names": ["碧玲星", "是熊熊也是幻璃", "南行不問舊人間"] },
-    // { "label": "測試回饋", "names": ["名字3"] }
   ],
   "note": "感謝所有協助整理資料與回報問題的玩家！"
 };
