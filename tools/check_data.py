@@ -58,9 +58,9 @@ if V is not None:
                 try:
                     if json.load(open(pj, encoding='utf-8')) != data: errs.append(f'{rel(pj)} 和 {js} 內容不一致，請兩個檔案一起更新')
                 except Exception as e: errs.append(f'{rel(pj)}: 無法讀取（{e}）')
-# 裝備（選用）：以 equipment.json 為準，equipment.js 不存在或內容不同時自動產生
-def check_equipment(vdir, name, outdir):
-    pj = os.path.join(vdir, 'equipment.json')
+# 裝備、通貨（選用）：以 json 為準，js 不存在或內容不同時自動產生
+def check_items(vdir, name, outdir, base, var):
+    pj = os.path.join(vdir, base + '.json')
     if not os.path.exists(pj): return
     try: d = json.load(open(pj, encoding='utf-8'))
     except Exception as e: errs.append(f'{rel(pj)}: 無法讀取（{e}）'); return
@@ -73,12 +73,12 @@ def check_equipment(vdir, name, outdir):
         if not x.get('name'): errs.append(f'{rel(pj)}: {x.get("id")} 沒有名稱')
     if d.get('gameVersion') and d['gameVersion'] != name:
         warns.append(f'{rel(pj)}: 檔內 gameVersion「{d["gameVersion"]}」和 versions.js 的「{name}」不同（請確認放對資料夾）')
-    sheet = (d.get('iconSheet') or {}).get('file') or 'equipment-icons.png'
+    sheet = (d.get('iconSheet') or {}).get('file') or base + '-icons.png'
     if any(isinstance(x.get('iconIndex'), int) for x in items) and not os.path.exists(os.path.join(vdir, sheet)):
-        warns.append(f'找不到 {rel(os.path.join(vdir, sheet))}（裝備圖示不會顯示）')
-    js = '/* 內容同 equipment.json（tools/check_data.py 自動產生），請勿手動修改 */\nwindow.LOOTANIA_EQUIPMENT = ' + json.dumps(d, ensure_ascii=False, separators=(',', ':')) + ';\n'
+        warns.append(f'找不到 {rel(os.path.join(vdir, sheet))}（圖示不會顯示）')
+    js = f'/* 內容同 {base}.json（tools/check_data.py 自動產生），請勿手動修改 */\nwindow.{var} = ' + json.dumps(d, ensure_ascii=False, separators=(',', ':')) + ';\n'
     target = os.path.join(outdir, os.path.basename(vdir)) if outdir else vdir
-    pjs = os.path.join(target, 'equipment.js')
+    pjs = os.path.join(target, base + '.js')
     cur = open(pjs, encoding='utf-8').read() if os.path.exists(pjs) else None
     if cur != js:
         os.makedirs(target, exist_ok=True); open(pjs, 'w', encoding='utf-8').write(js); print(f'  已產生 {pjs}')
@@ -86,7 +86,8 @@ def check_equipment(vdir, name, outdir):
 OUT_DIR = sys.argv[1] if len(sys.argv) > 1 else None
 if V is not None:
     for v in V.get('versions') or []:
-        if v.get('dir') and os.path.isdir(os.path.join(D, v['dir'])): check_equipment(os.path.join(D, v['dir']), v.get('version'), OUT_DIR)
+        if v.get('dir') and os.path.isdir(os.path.join(D, v['dir'])): 
+            for base, var in (('equipment', 'LOOTANIA_EQUIPMENT'), ('currency', 'LOOTANIA_CURRENCY')): check_items(os.path.join(D, v['dir']), v.get('version'), OUT_DIR, base, var)
 h = load_js(os.path.join(D, 'home.js'), 'LOOTANIA_HOME', required=False)
 if h is not None:
     for k in ('start', 'end'):

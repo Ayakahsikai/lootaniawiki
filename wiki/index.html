@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="LOOTANIA 遊戲資料站：技能、符文、裝備與賽季資訊。">
+<meta name="description" content="LOOTANIA 遊戲資料站：技能、符文、通貨、裝備與賽季資訊。">
 <title>LOOTANIA Wiki</title>
 <style>
 /* LOOTANIA Wiki — 參考 poedb 的資料站風格：黑底、細框面板、表格列表、遊戲提示框 */
@@ -97,6 +97,8 @@ td.ic{width:76px}
 .icon span{font-size:11px;color:var(--muted);text-align:center;padding:2px}
 .it-name{color:var(--unique);font-weight:600;font-size:14.5px}
 .it-name:hover{color:#e08a40}
+.it-name.cur-name{color:#e6d39a}.it-name.cur-name:hover{color:#fff1c4}
+.itip .h.cur-h{color:#e6d39a;background:linear-gradient(#22201a,#14130f)}
 .it-id{color:#555;font:11px var(--f-mono);margin-left:8px}
 .it-id:hover{color:var(--muted)}
 .ln{font-size:13px}
@@ -476,9 +478,28 @@ function parseQuery(raw) {
     const searchText = it => [it.name, it.id, it.slot, it.weaponType, it.note, it.source, ...(it.base || []).map(modText), ...(it.affix || it.hidden || []).map(modText)].join(' ');
     return { row, tip, iconHTML, searchText, typeOf, tipClass: 'itip' };
   })();
+  /* ---------- 通貨顯示：種類、說明、獲得方式（圖示用 iconIndex 對應 currency-icons.png） ---------- */
+  const CUR = (() => {
+    const hl = (t, terms) => { let h = esc(t); for (const x of terms || []) if (x) h = h.split(esc(x)).join(`<mark>${esc(x)}</mark>`); return h; };
+    const br = h => h.replace(/\n/g, '<br>');
+    const iconHTML = it => typeof it.iconIndex === 'number' && it.iconIndex >= 0 ? (SC.sprite(it.iconIndex) || `<span>${esc(it.type || '?')}</span>`) : `<span>${esc(it.type || '?')}</span>`;
+    function row(it, meta, terms) {
+      return `<tr id="${esc(it.id)}"><td class="ic"><div class="icon">${iconHTML(it)}</div></td><td>
+        <a class="it-name cur-name" href="#${esc(it.id)}" data-tip="${esc(it.id)}">${hl(it.name, terms)}</a><a class="it-id" href="#${esc(it.id)}" title="此通貨的連結">${esc(it.id)}</a>
+        ${it.type ? `<div class="ln"><span class="k">種類:</span> <b>${hl(it.type, terms)}</b>${it.note ? ` <span class="k">(${hl(it.note, terms)})</span>` : ''}</div>` : ''}
+        ${it.description ? `<div class="mods"><div>${br(hl(it.description, terms))}</div></div>` : ''}
+        ${it.source ? `<div class="it-foot">獲得方式：${hl(it.source, terms)}</div>` : ''}</td></tr>`; }
+    function tip(it) {
+      return `<div class="h cur-h">${esc(it.name)}<small>${esc(it.type || '')}</small></div>
+        ${it.description ? `<div class="s"><div class="m">${br(esc(it.description))}</div></div>` : ''}
+        ${it.source || it.note ? `<div class="s">${it.source ? `<span class="k">獲得方式：</span>${esc(it.source)}` : ''}${it.note ? `${it.source ? '<br>' : ''}<span class="k">${esc(it.note)}</span>` : ''}</div>` : ''}`; }
+    const searchText = it => [it.name, it.id, it.type, it.description, it.source, it.note].join(' ');
+    return { row, tip, iconHTML, searchText };
+  })();
   const SRC = {
     skills: { name: '技能', var: 'LOOTANIA_SKILLS', list: 'skills', js: 'skills.js', sheet: 'skill-icons.png' },
     runes:  { name: '符文', var: 'LOOTANIA_RUNES',  list: 'runes',  js: 'runes.js',  sheet: 'rune-icons.png' },
+    currency:  { name: '通貨', var: 'LOOTANIA_CURRENCY', list: 'items', js: 'currency.js', sheet: 'currency-icons.png', card: CUR, metaDef: {} },
     equipment: { name: '裝備', var: 'LOOTANIA_EQUIPMENT', list: 'items', js: 'equipment.js', sheet: 'equipment-icons.png', card: EQ, metaDef: EQ_META },
   };
   const cardOf = s0 => (s0 && s0.card) || SC;
@@ -506,6 +527,7 @@ function parseQuery(raw) {
     { id: 'active',  menu: '技能', label: '主動技能', src: 'skills', pick: s => s.kind === 'skill' },
     { id: 'passive', menu: '技能', label: '被動技能', src: 'skills', pick: s => s.kind === 'passive' },
     { id: 'runes',   menu: '技能', label: '符文',     src: 'runes',  pick: () => true },
+    { id: 'currency', menu: '物品', label: '通貨',     src: 'currency',  pick: () => true },
     { id: 'legend',  menu: '物品', label: '傳奇裝備', src: 'equipment', pick: () => true },
   ];
   const MENUS = [...new Set(PAGES.map(p => p.menu))];
@@ -793,6 +815,7 @@ function parseQuery(raw) {
     ],
   };
   const catsOf = () => { if (!page) return [];
+    if (page.src === 'currency') return [...new Set(page.items.map(x => x.type).filter(Boolean))].map(t => ({ id: t, label: t, test: x => x.type === t }));
     if (page.src === 'equipment') return (meta.slots || []).filter(sl => page.items.some(x => x.slot === sl)).map(sl => ({ id: sl, label: sl, test: x => x.slot === sl }));
     return CATS[page.id] || []; };
   function renderCats() { const C = catsOf(); $('cats').hidden = !C.length; if (!C.length) { curCat = ''; return; }
@@ -800,13 +823,13 @@ function parseQuery(raw) {
       .map(c => `<a href="#" data-c="${c.id}" class="${curCat === c.id ? 'on' : ''}">${esc(c.label)}<span class="n">/${c.n}</span></a>`).join('');
     renderSub(); }
   // 裝備「武器」分類：第二排列出武器分類（單手劍、短杖…），取代武器下拉選單
-  function renderSub() { const sub = $('subcats'), isEq = !!(src && src.card), on = isEq && curCat === '武器';
+  function renderSub() { const sub = $('subcats'), isEq = !!(src && src.card === EQ), on = isEq && curCat === '武器';
     if (isEq) $('weapon').hidden = true;
     sub.hidden = !on; if (!on) { if (isEq) $('weapon').value = ''; return; }
     const w = $('weapon').value, ws = [...$('weapon').options].map(o => o.value).filter(Boolean), all = page.items.filter(x => x.slot === '武器');
     sub.innerHTML = [['', '全部武器', all.length], ...ws.map(v => [v, v, all.filter(x => x.weaponType === v).length])]
       .map(([v, l, n]) => `<a href="#" data-w="${esc(v)}" class="${w === v ? 'on' : ''}">${esc(l)}<span class="n">/${n}</span></a>`).join(''); }
-  const searchText = s => s.slot !== undefined && !s.levels ? EQ.searchText(s) : [s.name, s.id, s.group, s.desc, s.source, s.effect && SC.levelsOf(s).map(r => SC.effectAt(s, r)).join(' '), SC.runeEffect(s), ...(s.tags || []), ...(s.compatTags || []), ...(s.weapons || []), s.note].join(' ');
+  const searchText = s => /^eq-/.test(s.id) ? EQ.searchText(s) : /^cur-/.test(s.id) ? CUR.searchText(s) : [s.name, s.id, s.group, s.desc, s.source, s.effect && SC.levelsOf(s).map(r => SC.effectAt(s, r)).join(' '), SC.runeEffect(s), ...(s.tags || []), ...(s.compatTags || []), ...(s.weapons || []), s.note].join(' ');
   const firstLv = s => { if (s.req && !s.levels) return s.req.level || 0; const r = SC.levelsOf(s)[0]; return r && r.req && r.req.level != null ? r.req.level : 9999; };
   const okWeapon = (s, w) => !w || (src && src.card ? s.weaponType === w : !(s.weapons || []).length || s.weapons.some(x => x === w || ((meta.weaponGroups || {})[x] || []).includes(w)));
 
@@ -819,7 +842,7 @@ function parseQuery(raw) {
     $('crumb').innerHTML = `<a href="#/">首頁</a><span>›</span>${esc(p.menu)}<span>›</span>${esc(p.label)}`;
     document.title = `${p.label} · LOOTANIA Wiki`;
     if (!src.ok) { $('home').hidden = true; $('app').hidden = true; $('none').hidden = false; $('none').innerHTML = missingHint([src]); return; }
-    const isEq = !!src.card, eqW = isEq ? [...new Set(p.items.map(s => s.weaponType).filter(Boolean))] : [];
+    const isEq = src.card === EQ, eqW = isEq ? [...new Set(p.items.map(s => s.weaponType).filter(Boolean))] : [];
     const hasW = isEq ? eqW.length > 0 : p.items.some(s => (s.weapons || []).length);
     $('weapon').hidden = !hasW;
     const wOrder = (meta.weaponTypes || []).map(w => w.id);
@@ -830,7 +853,7 @@ function parseQuery(raw) {
     $('q').value = params.get('q') || ''; $('weapon').value = hasW ? (params.get('weapon') || '') : '';
     // 沒有等級資料（符文）就拿掉「需求等級」排序，預設改用編號
     // 沒有價格（例如裝備「僅怪物掉落」）就拿掉價格排序，預設改用需求等級
-    const hasLv = isEq || p.items.some(s => SC.levelsOf(s).length), hasPr = p.items.some(s => pr(s) != null);
+    const hasLv = isEq || p.items.some(s => SC.levelsOf(s).length), hasPr = !src.card && p.items.some(s => pr(s) != null);   // 通貨、裝備的獲得方式不是價格
     $('sort').querySelector('[value=lv]').hidden = !hasLv; $('sort').querySelector('[value=price]').hidden = $('sort').querySelector('[value=price-d]').hidden = !hasPr;
     p.defSort = hasPr ? 'price' : hasLv ? 'lv' : 'id';   // 預設：價格 低→高
     $('sort').value = params.get('sort') || p.defSort; if ($('sort').selectedOptions[0]?.hidden) $('sort').value = p.defSort;
@@ -939,7 +962,7 @@ function parseQuery(raw) {
     tip.hidden = true; closeMenus(); $('detail').hidden = true;
     const h = location.hash.replace(/^#\/?/, ''), [path, qs] = h.split('?'), params = new URLSearchParams(qs || ''), seg = path.split('/');
     let p = pageOf(seg[0]), item = seg[1] || '';
-    if (!p && /^(sk|rn|eq)-\d+$/.test(seg[0])) { item = seg[0]; p = pageOfItem(item); }   // 舊連結 #sk-0042
+    if (!p && /^(sk|rn|eq|cur)-\d+$/.test(seg[0])) { item = seg[0]; p = pageOfItem(item); }   // 舊連結 #sk-0042
     renderMenu(p);
     if (!p) { renderHome(); scrollTo(0, 0); return; }
     if (item && DETAIL_SRC.has(p.src)) { openDetail(p, item); scrollTo(0, 0); return; }

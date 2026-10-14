@@ -40,7 +40,9 @@ window.LOOTANIA_VERSIONS = {
 - 舊版本資料夾請保留，網頁右上角可以切換查看，舊流派也才對得上舊資料。
 - 網頁預設顯示 `latest`；網址加 `?v=v0.10.4` 可以直接開指定版本。
 
-## 裝備（物品 › 傳奇裝備）
+## 裝備、通貨（物品 › 傳奇裝備／通貨）
+- 通貨同裝備：放 `data/<版本>/currency.json`、`data/<版本>/currency-icons.png`，`currency.js` 由檢查程式自動產生。
+
 - 放在各版本資料夾：`data/<版本>/equipment.json`、`data/<版本>/equipment-icons.png`。
 - `equipment.js` 不用自己做：部署時 `tools/check_data.py` 會由 `equipment.json` 自動產生。本機版要看裝備，先在 repo 根目錄執行一次 `python tools/check_data.py`，就會在資料夾裡產生 `equipment.js`。
 - 圖示：每件裝備的 `iconIndex` 對應 `equipment-icons.png` 的格子（0 起算、由左到右、由上到下，格子為正方形）。沒寫 `iconSheet` 時，網頁會依圖片尺寸自動推算欄數。
