@@ -888,13 +888,24 @@ function parseQuery(raw) {
   const listHash = {};
   const DETAIL_SRC = new Set(['skills']);   // 符文沒有等級，維持在列表裡標示
   // 可搭配的符文：符文的相容標籤和技能標籤有任一相同就列出；沒填相容標籤的符文不列入
+  // 相容標籤寫法（每一項符合任一即可）：「攻擊」＝有攻擊標籤；「近戰單體」「指定範圍」＝同時有這幾個標籤；
+  // 「法術（非保留）」「法術（非引導、非保留）」＝有法術、但不能有括號裡的標籤；「全部」＝所有技能；舊寫法「非X」＝不能有 X
+  function compatParse(c, known) { let t = String(c || '').trim(); const not = [];
+    const m = /^(.*?)[（(]([^）)]*)[）)]$/.exec(t);
+    if (m) { t = m[1].trim(); for (const x of m[2].split(/[、,，\s]+/)) { const y = x.trim().replace(/^非/, ''); if (y) not.push(y); } }
+    if (/^非./.test(t) && !known.includes(t)) return { neg: t.slice(1) };
+    if (!t || t === '全部') return { need: [], not };
+    const K = known.filter(k => k && !/[（(]/.test(k) && k !== '全部').sort((a, b) => b.length - a.length), need = []; let rest = t;
+    while (rest) { const k = K.find(k => rest.startsWith(k)); if (!k) return { need: [t], not }; need.push(k); rest = rest.slice(k.length); }
+    return { need, not }; }
+  function compatMatch(compat, tags, known) { const T = new Set(tags || []), ps = (compat || []).map(c => [c, compatParse(c, known)]);
+    const negs = ps.filter(([, p]) => p.neg); if (negs.some(([, p]) => T.has(p.neg))) return [];
+    const pos = ps.filter(([, p]) => !p.neg); if (!pos.length) return negs.map(([c]) => c);
+    return pos.filter(([, p]) => p.need.every(x => T.has(x)) && !p.not.some(x => T.has(x))).map(([c]) => c); }
+  const knownTags = () => [...new Set([...((SRC.skills.meta || {}).skillTags || []).map(t => t.id), ...SRC.skills.items.flatMap(x => x.tags || [])])];
   function runesFor(s) {
     const R = SRC.runes; if (!R.ok) return '';
-    const tags = new Set(s.tags || []);
-    // 相容標籤：一般標籤＝技能有其中任一個；「全部」＝所有技能；「非X」＝技能不能有 X
-    const match = r => { const c = r.compatTags || [], neg = c.filter(x => /^非./.test(x)).map(x => x.slice(1));
-      if (neg.some(n => tags.has(n))) return []; if (c.includes('全部')) return ['全部'];
-      const pos = c.filter(x => x !== '全部' && !/^非./.test(x)); return pos.length ? pos.filter(x => tags.has(x)) : (neg.length ? c.filter(x => /^非./.test(x)) : []); };
+    const match = r => compatMatch(r.compatTags || [], s.tags || [], knownTags());
     const hit = R.items.map(r => [r, match(r)]).filter(([, m]) => m.length);
     useSheet(R);
     const html = `<section class="panel dt-runes"><h2>可搭配的符文 <span class="n">/${hit.length}</span></h2><div class="body">
