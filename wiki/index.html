@@ -41,7 +41,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{ou
 .menu>li>a:hover,.menu>li:hover>span,.menu>li:focus-within>span{background:#1a1a1a;color:#fff;text-decoration:none}
 .menu>li.cur>a,.menu>li.cur>span{color:#fff;box-shadow:inset 0 -2px 0 var(--accent)}
 .menu .caret{font-size:9px;margin-left:5px;opacity:.6}
-.drop{display:none;position:absolute;left:0;top:100%;min-width:200px;background:#141414;border:1px solid var(--line-2);border-top:0;padding:6px 0;margin:0;columns:2;column-gap:0;width:300px}
+.drop{display:none;position:absolute;z-index:45;left:0;top:100%;min-width:200px;background:#141414;border:1px solid var(--line-2);border-top:0;padding:6px 0;margin:0;columns:2;column-gap:0;width:300px}
 .menu>li:hover .drop,.menu>li:focus-within .drop{display:block}
 .drop li{list-style:none;break-inside:avoid}
 .drop a{display:block;padding:4px 14px;font-size:13px}
@@ -51,7 +51,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{ou
 .nav-search{margin-left:auto;display:flex}
 .nav-search input{width:220px;border-radius:3px 0 0 3px}
 .nav-search button{border-left:0;border-radius:0 3px 3px 0}
-@media (max-width:720px){.nav-in{height:auto;flex-wrap:wrap;padding:6px 10px}.menu{height:36px}.nav-search{margin-left:0;width:100%;padding-bottom:6px}.nav-search input{flex:1;width:auto}}
+@media (max-width:720px){.drop{max-width:calc(100vw - 20px)}.menu>li:last-child .drop{left:auto;right:0}.nav-in{height:auto;flex-wrap:wrap;padding:6px 10px}.menu{height:36px}.nav-search{margin-left:0;width:100%;padding-bottom:6px}.nav-search input{flex:1;width:auto}}
 
 /* ---- 版面 ---- */
 main{max-width:1280px;margin:0 auto;padding:14px 14px 60px}
@@ -204,6 +204,15 @@ table.items tr{scroll-margin-top:calc(var(--nav-h,47px) + 70px)}
 .gs-more{display:block;padding:4px 10px 6px;font-size:12px}
 .gs-empty{padding:10px;color:var(--muted);font-size:12.5px}
 @media (max-width:720px){.gs-drop{left:0;right:auto;width:100%}}
+
+/* 首頁：公告區塊收合 */
+.md-fold{margin:10px 0;border:1px solid var(--line-2);border-radius:4px;background:#151515}
+.md-fold>summary{cursor:pointer;padding:8px 12px;color:var(--accent);font-weight:600;list-style:none}
+.md-fold>summary::-webkit-details-marker{display:none}
+.md-fold>summary::before{content:'▸ ';color:var(--muted)}
+.md-fold[open]>summary::before{content:'▾ '}
+.md-fold>summary:hover{background:#1c1c1c}
+.md-fold-b{padding:2px 14px 10px;border-top:1px solid var(--line)}
 
 /* 下拉選單：單欄，樣式同遊戲資料站 */
 .drop{columns:1;width:auto;min-width:150px;padding:4px 0}
@@ -493,7 +502,9 @@ function parseQuery(raw) {
     const u = m => m.unit === 'percent' ? '%' : '';
     // 與遊戲顯示一致：固定值「+38%」、範圍「+(30~45)%」；負數不加 +
     const val = m => 'value' in m ? `${m.value >= 0 ? '+' : ''}${n(m.value)}${u(m)}` : `${m.min >= 0 ? '+' : ''}(${n(m.min)}~${n(m.max)})${u(m)}`;
-    const modText = m => !m ? '' : 'text' in m ? (m.text || '') : `${m.stat || '（未填屬性）'}：${val(m)}`;
+    // 文字詞綴可帶數值：{"text":"敏捷每{v}點提供1%法術傷害","min":3,"max":5} → 敏捷每(3~5)點提供1%法術傷害
+    const txt = m => String(m.text || '').replace(/\{v\}/g, 'value' in m ? n(m.value) : ('min' in m ? `(${n(m.min)}~${n(m.max)})` : '{v}'));
+    const modText = m => !m ? '' : 'text' in m ? txt(m) : `${m.stat || '（未填屬性）'}：${val(m)}`;
     const typeOf = it => it.slot === '武器' ? (it.weaponType || '武器') : it.slot;
     const hl = (t, terms) => { let h = esc(t); for (const x of terms || []) if (x) h = h.split(esc(x)).join(`<mark>${esc(x)}</mark>`); return h; };
     function reqLine(it, meta) { const r = it.req || {}, parts = [];
@@ -502,7 +513,7 @@ function parseQuery(raw) {
     function props(it, meta, terms) {
       const out = [`<div class="ln"><span class="k">${it.slot === '武器' ? '武器分類' : '部位'}:</span> <b>${esc(typeOf(it) || '—')}</b>${it.note ? ` <span class="k">(${esc(it.note)})</span>` : ''}</div>`];
       if (it.attackSpeed != null) out.push(`<div class="ln"><span class="k">攻擊速度:</span> <b>${esc((meta.attackSpeeds || {})[it.attackSpeed] || '?')}(${esc(it.attackSpeed)})</b></div>`);
-      for (const m of it.base || []) out.push('text' in m ? `<div class="ln">${hl(m.text, terms)}</div>` : `<div class="ln"><span class="k">${hl(m.stat, terms)}:</span> <b>${esc(val(m))}</b></div>`);
+      for (const m of it.base || []) out.push('text' in m ? `<div class="ln">${hl(txt(m), terms)}</div>` : `<div class="ln"><span class="k">${hl(m.stat, terms)}:</span> <b>${esc(val(m))}</b></div>`);
       return out.join(''); }
     const mods = (it, terms) => (it.affix || it.hidden || []).map(m => `<div class="">${hl(modText(m), terms)}</div>`).join('');   // 純文字詞綴和數值詞綴同樣式
     const iconHTML = it => typeof it.iconIndex === 'number' && it.iconIndex >= 0 ? (SC.sprite(it.iconIndex) || `<span>${esc(typeOf(it))}</span>`) : `<span>${esc(typeOf(it) || '?')}</span>`;
@@ -645,7 +656,17 @@ function parseQuery(raw) {
     }
     return `\u0001${WL.push(h) - 1}\u0001`;
   }
+  const MD_FOLD = /^\s*(?:公告|活動|\p{Extended_Pictographic})/u;   // 收合區塊的標題
+  const MD_LI = /^\s*(?:[-*]\s+|・\s*)/;   // 清單：「- 」「* 」或「・」（・後面可不空格）
+  // 某一頁的分類（給首頁「{{分類:通貨}}」用）：通貨＝種類、傳奇裝備＝部位、主動技能＝傷害／位移…
+  function catsFor(p) { if (!p) return [];
+    if (p.src === 'currency') return [...new Set(p.items.map(x => x.type).filter(Boolean))].map(t => ({ id: t, label: t }));
+    if (p.src === 'equipment') { const sl = ((SRC.equipment || {}).meta || {}).slots || EQ_META.slots; return sl.filter(x => p.items.some(i => i.slot === x)).map(x => ({ id: x, label: x })); }
+    return (CATS[p.id] || []).map(c => ({ id: c.id, label: c.label })); }
   function mdLite(src) {
+    // {{分類:通貨}} → 依目前資料自動列出該頁所有分類的連結（例：結晶、卷軸、箴言…），之後新增種類也會自動出現
+    src = String(src).replace(/\{\{\s*分類\s*[:：]\s*(.+?)\s*\}\}/g, (all, l) => { const p = pageByLabel(l); if (!p) return all;
+      return catsFor(p).map(c => `[${c.label}](#/${p.id}?cat=${encodeURIComponent(c.id)})`).join('、'); });
     // [[技能名稱]]＝站內連結（技能→詳細頁、符文→列表）；[顯示文字](網址)＝命名連結；單獨的網址也會自動變成連結
     const bold = h => h.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
     // 連到本站（#/… 或 https://…/lootaniawiki/#/…）：同一頁內切換，不開新分頁；本機版也能用
@@ -657,17 +678,20 @@ function parseQuery(raw) {
           return tok(h ? `<a href="${esc(h)}">${bold(esc(txt))}</a>` : `<a href="${esc(url)}" target="_blank" rel="noopener">${bold(esc(txt))}</a>`); });
       WL.length = 0;
       return bold(esc(s)).replace(/(https?:\/\/[^\s<\u0000]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\u0000(\d+)\u0000/g, (_, i) => L[+i]); };
-    let out = '', list = false, para = [];
+    // 標題以「公告」「活動」或表情符號（📢、🎬…）開頭的區塊：收合顯示（點標題展開），不影響快速索引
+    let out = '', list = false, para = [], fold = false;
     const flushP = () => { if (para.length) { out += `<p>${para.map(inl).join('<br>')}</p>`; para = []; } };
     const flushL = () => { if (list) { out += '</ul>'; list = false; } };
+    const endFold = () => { if (fold) { out += '</div></details>'; fold = false; } };
     for (const raw of String(src || '').split(/\r?\n/)) {
       const l = raw.trimEnd();
-      if (/^#{1,3}\s+/.test(l)) { flushP(); flushL(); out += `<h3>${inl(l.replace(/^#{1,3}\s+/, ''))}</h3>`; }
-      else if (/^\s*[-*・]\s+/.test(l)) { flushP(); if (!list) { out += '<ul>'; list = true; } out += `<li>${inl(l.replace(/^\s*[-*・]\s+/, ''))}</li>`; }
+      if (/^#{1,3}\s+/.test(l)) { flushP(); flushL(); endFold(); const t = l.replace(/^#{1,3}\s+/, '');
+        if (MD_FOLD.test(t)) { out += `<details class="md-fold"><summary>${inl(t)}</summary><div class="md-fold-b">`; fold = true; } else out += `<h3>${inl(t)}</h3>`; }
+      else if (MD_LI.test(l)) { flushP(); if (!list) { out += '<ul>'; list = true; } out += `<li>${inl(l.replace(MD_LI, ''))}</li>`; }
       else if (!l.trim()) { flushP(); flushL(); }
       else { flushL(); para.push(l); }
     }
-    flushP(); flushL(); return out;
+    flushP(); flushL(); endFold(); return out;
   }
   function infoView() {
     const st = seasonState(), hasT = /T/.test(home.start + home.end);
@@ -683,25 +707,28 @@ function parseQuery(raw) {
   const QUICK = ['賽季重點', '新增內容', '平衡調整', '活動資訊', '注意事項'];
   let ed = null;   // { secs:[{title,note,items[]}], mode:'block'|'md', md }
   function mdToSecs(md) {
-    const secs = []; let cur = null; const nw = title => { cur = { title, note: '', items: [] }; secs.push(cur); };
+    const secs = []; let cur = null; const nw = title => { cur = { title, note: '', items: [], foot: '', raw: MD_FOLD.test(title) }; secs.push(cur); };
     for (const raw of String(md || '').split(/\r?\n/)) {
       const l = raw.trimEnd();
       if (/^#{1,3}\s+/.test(l)) nw(l.replace(/^#{1,3}\s+/, ''));
-      else if (/^\s*[-*・]\s+/.test(l)) { if (!cur) nw(''); cur.items.push(l.replace(/^\s*[-*・]\s+/, '')); }
+      else if (cur && cur.raw) cur.note += (cur.note ? '\n' : '') + l;   // 公告／活動區塊：整段原文放在說明欄，保留多段清單與順序
+      else if (MD_LI.test(l)) { if (!cur) nw(''); cur.items.push(l.replace(MD_LI, '')); }
+      else if (cur && cur.items.length && (l.trim() || cur.foot)) cur.foot += (cur.foot ? '\n' : '') + l;   // 清單後面的文字＝結尾說明（保持原本順序）
       else { if (!cur) { if (!l.trim()) continue; nw(''); } cur.note += (cur.note ? '\n' : '') + l; }
     }
-    secs.forEach(x => { x.note = x.note.replace(/^\n+|\s+$/g, ''); });
+    secs.forEach(x => { x.note = x.note.replace(/^\n+|\s+$/g, ''); x.foot = (x.foot || '').replace(/^\n+|\s+$/g, ''); });
     return secs.length ? secs : [{ title: '賽季重點', note: '', items: [''] }];
   }
-  const secsToMd = secs => secs.map(x => [x.title.trim() ? '## ' + x.title.trim() : '', x.note.trim(), x.items.map(i => i.trim()).filter(Boolean).map(i => '- ' + i).join('\n')].filter(Boolean).join('\n')).filter(Boolean).join('\n\n');
+  const secsToMd = secs => secs.map(x => { const head = [x.title.trim() ? '## ' + x.title.trim() : '', x.note.trim(), x.items.map(i => i.trim()).filter(Boolean).map(i => '- ' + i).join('\n')].filter(Boolean).join('\n'); const f = (x.foot || '').trim(); return f ? head + '\n\n' + f : head; }).filter(Boolean).join('\n\n');
   const edBody = () => (ed.mode === 'md' ? $('hBody').value : secsToMd(ed.secs)).replace(/\s+$/, '');
   function secHTML(x, si, n) {
     return `<div class="sec" data-s="${si}">
       <div class="sec-h"><input class="sec-t" data-k="title" data-s="${si}" value="${esc(x.title)}" placeholder="區塊標題（例如：新增內容）" aria-label="區塊標題">
         <button class="ib" data-act="up" data-s="${si}" title="上移"${si ? '' : ' disabled'}>↑</button><button class="ib" data-act="down" data-s="${si}" title="下移"${si < n - 1 ? '' : ' disabled'}>↓</button><button class="ib del" data-act="delsec" data-s="${si}" title="刪除區塊">✕</button></div>
-      <textarea class="sec-n" data-k="note" data-s="${si}" rows="${Math.min(6, Math.max(1, x.note.split('\n').length))}" placeholder="說明文字（可空白）" aria-label="說明文字">${esc(x.note)}</textarea>
+      <textarea class="sec-n" data-k="note" data-s="${si}" rows="${Math.min(x.raw ? 14 : 6, Math.max(1, x.note.split('\n').length))}" placeholder="${x.raw ? '公告內容（可用 - 清單、**粗體**、[文字](網址)；不要再用 ## 小標題）' : '說明文字（可空白）'}" aria-label="說明文字">${esc(x.note)}</textarea>
       <ul class="sec-items">${x.items.map((it, ii) => `<li><span class="dot">•</span><input data-k="item" data-s="${si}" data-i="${ii}" value="${esc(it)}" placeholder="項目內容，按 Enter 新增下一項" aria-label="項目"><button class="ib del" data-act="delitem" data-s="${si}" data-i="${ii}" title="刪除項目">✕</button></li>`).join('')}</ul>
-      <button class="add-item" data-act="additem" data-s="${si}">＋ 新增項目</button></div>`;
+      <button class="add-item" data-act="additem" data-s="${si}">＋ 新增項目</button>
+      <textarea class="sec-n sec-f" data-k="foot" data-s="${si}" rows="${Math.min(4, Math.max(1, (x.foot || '').split('\n').length))}" placeholder="項目後的說明（可空白）" aria-label="項目後的說明">${esc(x.foot || '')}</textarea></div>`;
   }
   function renderSecs(focus) {
     $('hSecs').innerHTML = ed.secs.map((x, i) => secHTML(x, i, ed.secs.length)).join('') || '<p class="sk-mut">還沒有區塊，按上方的快速新增。</p>';
@@ -774,7 +801,7 @@ function parseQuery(raw) {
   $('home').addEventListener('input', e => {
     const el = e.target, k = el.dataset.k; cancelArmed = false;
     if (k) { const x = ed.secs[+el.dataset.s]; if (k === 'item') x.items[+el.dataset.i] = el.value; else x[k] = el.value;
-      if (k === 'note') el.rows = Math.min(6, Math.max(1, el.value.split('\n').length)); }
+      if (k === 'note') el.rows = Math.min(x.raw ? 14 : 6, Math.max(1, el.value.split('\n').length)); }
     if (homeEditing && (k || el.id === 'hBody')) pvUpd();
   });
   $('home').addEventListener('keydown', e => {
