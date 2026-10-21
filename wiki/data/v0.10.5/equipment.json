@@ -31,7 +31,7 @@
       ],
       "icon": "img/equipment/eq-0011.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "金線穿紅布，百邪不近身。",
       "iconIndex": 0
     },
     {
@@ -71,7 +71,7 @@
       ],
       "icon": "img/equipment/eq-0012.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "其他五條缺席的詞綴一致認為:「攻擊就是最好的防禦。」",
       "iconIndex": 1
     },
     {
@@ -114,7 +114,7 @@
       ],
       "icon": "img/equipment/eq-0013.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "「什麼請換?地圖又不是你一個人的。」–野蠻的冒險家",
       "iconIndex": 2
     },
     {
@@ -148,7 +148,7 @@
       ],
       "icon": "img/equipment/eq-0014.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "有派說法是，盲俠其實看的見，他只是覺得對付你不需要用眼睛。",
       "iconIndex": 3
     },
     {
@@ -201,7 +201,7 @@
       ],
       "icon": "img/equipment/eq-0015.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "牠們猥瑣又貪婪，卻從未在陰溝裡翻船。",
       "iconIndex": 4
     },
     {
@@ -250,7 +250,7 @@
       ],
       "icon": "img/equipment/eq-0016.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "泰實夫堅稱星星會回答他。 後來大家發現，星星真的會。",
       "iconIndex": 5
     },
     {
@@ -307,7 +307,7 @@
       ],
       "icon": "img/equipment/eq-0017.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "「如果你有什麼煩惱的話，不妨試試用暴力解決吧。」–勇士之村武術教練",
       "iconIndex": 6
     },
     {
@@ -360,7 +360,7 @@
       ],
       "icon": "img/equipment/eq-0018.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "菇菇國王點燃所有暴民。直至哀號止息，王城依舊瀰漫血腥。",
       "iconIndex": 7
     },
     {
@@ -418,7 +418,7 @@
       ],
       "icon": "img/equipment/eq-0019.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "按下Alt+F4可以發出狼嚎。",
       "iconIndex": 8
     },
     {
@@ -464,7 +464,7 @@
       ],
       "icon": "img/equipment/eq-0020.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "「毒液從未裝在瓶中:真正的容器，一直是宿主。」",
       "iconIndex": 9
     },
     {
@@ -500,7 +500,7 @@
       ],
       "icon": "img/equipment/eq-0021.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "艾納斯大陸魔法協會曾經正式且強烈的抗議這頂帽子的存在，當然，路塔尼亞團隊並沒有理會。",
       "iconIndex": 10
     },
     {
@@ -559,7 +559,7 @@
       ],
       "icon": "img/equipment/eq-0022.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "「不建議與魔心防禦一起使用。」頭冠內側的一行小字寫著。",
       "iconIndex": 11
     },
     {
@@ -2290,7 +2290,7 @@
       ],
       "icon": "img/equipment/eq-0062.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "獵人只戴一邊。 另一邊要留給風聲。",
       "iconIndex": 51
     },
     {
@@ -2335,7 +2335,7 @@
       ],
       "icon": "img/equipment/eq-0063.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "她把痛苦置換，不再感受，卻永留心中。",
       "iconIndex": 52
     },
     {
@@ -2377,7 +2377,7 @@
       ],
       "icon": "img/equipment/eq-0064.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "據說戴著它跳起來的人，落地時總比別人晚一拍。",
       "iconIndex": 53
     },
     {
@@ -2420,7 +2420,7 @@
       ],
       "icon": "img/equipment/eq-0065.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "貓不會替你打架，但它總知道哪裡有值錢的東西。",
       "iconIndex": 54
     },
     {
@@ -2463,7 +2463,7 @@
       ],
       "icon": "img/equipment/eq-0066.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "救人的手不見得乾淨，但總比空著好。",
       "iconIndex": 55
     },
     {
@@ -2536,7 +2536,7 @@
       ],
       "icon": "img/equipment/eq-0067.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "「任何人有三百萬美金，都可以參加慈善撲克王大賽。」",
       "iconIndex": 56
     },
     {
@@ -2570,7 +2570,7 @@
       ],
       "icon": "img/equipment/eq-0068.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "他向眾神祈求無所不能，眾神表面答應，背地卻暗施詭計。",
       "iconIndex": 57
     },
     {
@@ -2611,7 +2611,7 @@
       ],
       "icon": "img/equipment/eq-0069.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "綠色的!",
       "iconIndex": 58
     },
     {
@@ -2694,7 +2694,7 @@
       ],
       "icon": "img/equipment/eq-0070.png",
       "source": "僅怪物掉落",
-      "note": "",
+      "note": "六百多年後，亞凱斯特終令萬物相容。烈焰與霜雪並存，雷霆與劇毒共生。",
       "iconIndex": 59
     },
     {

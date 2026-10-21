@@ -9,8 +9,8 @@
     "file": "skill-icons.png",
     "cell": 64,
     "cols": 32,
-    "rows": 3,
-    "count": 96
+    "rows": 4,
+    "count": 97
   },
   "meta": {
     "requirements": ["level", "str", "dex", "int", "luk"],
