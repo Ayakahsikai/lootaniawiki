@@ -109,6 +109,7 @@ td.ic{width:76px}
 .mods div{color:var(--mod);font-size:13px}
 .mods .tx{color:var(--mod-text);font-style:italic}
 .it-foot{margin-top:4px;font-size:12px;color:var(--muted)}
+.it-description{margin-top:8px;font-size:13px;line-height:1.6;color:var(--accent)}
 .badge{display:inline-block;font-size:11px;padding:0 5px;border-radius:2px;border:1px solid var(--warn);color:var(--warn);margin-right:6px;line-height:16px}
 mark{background:rgba(201,163,91,.33);color:inherit;border-radius:2px}
 .empty{color:var(--muted);padding:24px 0;text-align:center}
@@ -536,12 +537,12 @@ function parseQuery(raw) {
       return `<tr id="${esc(it.id)}"><td class="ic"><div class="icon">${iconHTML(it)}</div></td><td>
         <a class="it-name" href="#${esc(it.id)}" data-tip="${esc(it.id)}">${hl(it.name, terms)}</a><a class="it-id" href="#${esc(it.id)}" title="此裝備的連結">${esc(it.id)}</a>
         <div class="ln">${reqLine(it, meta)}</div>${props(it, meta, terms)}
-        ${md ? `<div class="mods">${md}</div>` : ''}${it.source ? `<div class="it-foot">獲得方式：${hl(it.source, terms)}</div>` : ''}</td></tr>`; }
+        ${md ? `<div class="mods">${md}</div>` : ''}${it.description ? `<div class="it-description"><i>${hl(it.description, terms).replace(/\n/g, '<br>')}</i></div>` : ''}${it.source ? `<div class="it-foot">獲得方式：${hl(it.source, terms)}</div>` : ''}</td></tr>`; }
     function tip(it, meta) { const md = mods(it, []);
       return `<div class="h">${esc(it.name)}<small>${esc(typeOf(it) || '')}</small></div>
         <div class="s">${props(it, meta, []).replace(/class="ln"/g, '')}</div><div class="s">${reqLine(it, meta)}</div>
-        ${md ? `<div class="s">${md.replace(/<div class="">/g, '<div class="m">')}</div>` : ''}${it.source ? `<div class="s"><span class="k">獲得方式：</span>${esc(it.source)}</div>` : ''}`; }
-    const searchText = it => [it.name, it.id, it.slot, it.weaponType, it.note, it.source, ...(it.base || []).map(modText), ...(it.affix || it.hidden || []).map(modText)].join(' ');
+        ${md ? `<div class="s">${md.replace(/<div class="">/g, '<div class="m">')}</div>` : ''}${it.description ? `<div class="s"><div class="it-description"><i>${esc(it.description).replace(/\n/g, '<br>')}</i></div></div>` : ''}${it.source ? `<div class="s"><span class="k">獲得方式：</span>${esc(it.source)}</div>` : ''}`; }
+    const searchText = it => [it.name, it.id, it.slot, it.weaponType, it.description, it.note, it.source, ...(it.base || []).map(modText), ...(it.affix || it.hidden || []).map(modText)].join(' ');
     return { row, tip, iconHTML, searchText, typeOf, tipClass: 'itip' };
   })();
   /* ---------- 通貨顯示：種類、說明、獲得方式（圖示用 iconIndex 對應 currency-icons.png） ---------- */

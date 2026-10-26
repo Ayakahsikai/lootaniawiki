@@ -31,7 +31,8 @@
       ],
       "icon": "img/equipment/eq-0011.png",
       "source": "僅怪物掉落",
-      "note": "金線穿紅布，百邪不近身。",
+      "description": "金線穿紅布，百邪不近身。",
+      "note": "",
       "iconIndex": 0
     },
     {
@@ -71,7 +72,8 @@
       ],
       "icon": "img/equipment/eq-0012.png",
       "source": "僅怪物掉落",
-      "note": "其他五條缺席的詞綴一致認為:「攻擊就是最好的防禦。」",
+      "description": "其他五條缺席的詞綴一致認為:「攻擊就是最好的防禦。」",
+      "note": "",
       "iconIndex": 1
     },
     {
@@ -114,7 +116,8 @@
       ],
       "icon": "img/equipment/eq-0013.png",
       "source": "僅怪物掉落",
-      "note": "「什麼請換?地圖又不是你一個人的。」–野蠻的冒險家",
+      "description": "「什麼請換?地圖又不是你一個人的。」–野蠻的冒險家",
+      "note": "",
       "iconIndex": 2
     },
     {
@@ -148,7 +151,8 @@
       ],
       "icon": "img/equipment/eq-0014.png",
       "source": "僅怪物掉落",
-      "note": "有派說法是，盲俠其實看的見，他只是覺得對付你不需要用眼睛。",
+      "description": "有派說法是，盲俠其實看的見，他只是覺得對付你不需要用眼睛。",
+      "note": "",
       "iconIndex": 3
     },
     {
@@ -201,7 +205,8 @@
       ],
       "icon": "img/equipment/eq-0015.png",
       "source": "僅怪物掉落",
-      "note": "牠們猥瑣又貪婪，卻從未在陰溝裡翻船。",
+      "description": "牠們猥瑣又貪婪，卻從未在陰溝裡翻船。",
+      "note": "",
       "iconIndex": 4
     },
     {
@@ -250,7 +255,8 @@
       ],
       "icon": "img/equipment/eq-0016.png",
       "source": "僅怪物掉落",
-      "note": "泰實夫堅稱星星會回答他。 後來大家發現，星星真的會。",
+      "description": "泰實夫堅稱星星會回答他。 後來大家發現，星星真的會。",
+      "note": "",
       "iconIndex": 5
     },
     {
@@ -307,7 +313,8 @@
       ],
       "icon": "img/equipment/eq-0017.png",
       "source": "僅怪物掉落",
-      "note": "「如果你有什麼煩惱的話，不妨試試用暴力解決吧。」–勇士之村武術教練",
+      "description": "「如果你有什麼煩惱的話，不妨試試用暴力解決吧。」–勇士之村武術教練",
+      "note": "",
       "iconIndex": 6
     },
     {
@@ -341,7 +348,7 @@
           "unit": "percent"
         },
         {
-          "stat": "自身血量低於30時，火焰傷害",
+          "stat": "自身血量低於30%時，火焰傷害",
           "value": 20,
           "unit": "percent"
         },
@@ -360,7 +367,8 @@
       ],
       "icon": "img/equipment/eq-0018.png",
       "source": "僅怪物掉落",
-      "note": "菇菇國王點燃所有暴民。直至哀號止息，王城依舊瀰漫血腥。",
+      "description": "菇菇國王點燃所有暴民。直至哀號止息，王城依舊瀰漫血腥。",
+      "note": "",
       "iconIndex": 7
     },
     {
@@ -382,7 +390,7 @@
         },
         {
           "stat": "敏捷",
-          "value": 4,
+          "value": 8,
           "unit": "flat"
         }
       ],
@@ -418,7 +426,8 @@
       ],
       "icon": "img/equipment/eq-0019.png",
       "source": "僅怪物掉落",
-      "note": "按下Alt+F4可以發出狼嚎。",
+      "description": "按下Alt+F4可以發出狼嚎。",
+      "note": "",
       "iconIndex": 8
     },
     {
@@ -446,9 +455,6 @@
       ],
       "affix": [
         {
-          "text": "你身上的中毒可以被疊加至20層。"
-        },
-        {
           "stat": "每層中毒賦予毒素傷害增幅",
           "value": 1,
           "unit": "percent"
@@ -459,12 +465,18 @@
           "unit": "percent"
         },
         {
-          "text": "你身上的中毒持續時間為8秒。"
+          "text": "你身上的中毒持續時間為6秒。"
+        },
+        {
+          "stat": "毒素承受異常持續秒數",
+          "value": 2,
+          "unit": "flat"
         }
       ],
       "icon": "img/equipment/eq-0020.png",
       "source": "僅怪物掉落",
-      "note": "「毒液從未裝在瓶中:真正的容器，一直是宿主。」",
+      "description": "「毒液從未裝在瓶中:真正的容器，一直是宿主。」",
+      "note": "",
       "iconIndex": 9
     },
     {
@@ -500,7 +512,8 @@
       ],
       "icon": "img/equipment/eq-0021.png",
       "source": "僅怪物掉落",
-      "note": "艾納斯大陸魔法協會曾經正式且強烈的抗議這頂帽子的存在，當然，路塔尼亞團隊並沒有理會。",
+      "description": "艾納斯大陸魔法協會曾經正式且強烈的抗議這頂帽子的存在，當然，路塔尼亞團隊並沒有理會。",
+      "note": "",
       "iconIndex": 10
     },
     {
@@ -517,7 +530,7 @@
       "base": [
         {
           "stat": "智力",
-          "value": 4,
+          "value": 8,
           "unit": "flat"
         },
         {
@@ -554,12 +567,13 @@
           "text": "使用魔力藥劑時恢復等量生命值"
         },
         {
-          "text": "每次主動使用技能獲得一層持續4秒的地印BUFF，最多20層"
+          "text": "2秒內主動使用技能累積消耗100點魔力獲得一層地印，最多20層；2秒內未獲得新的地印時失去所有層數"
         }
       ],
       "icon": "img/equipment/eq-0022.png",
       "source": "僅怪物掉落",
-      "note": "「不建議與魔心防禦一起使用。」頭冠內側的一行小字寫著。",
+      "description": "「不建議與魔心防禦一起使用。」頭冠內側的一行小字寫著。",
+      "note": "",
       "iconIndex": 11
     },
     {
@@ -577,10 +591,16 @@
       "affix": [
         {
           "text": "第5個技能欄位可以裝備5個符文。"
+        },
+        {
+          "stat": "額外符文槽",
+          "value": 1,
+          "unit": "flat"
         }
       ],
       "icon": "img/equipment/eq-0023.png",
       "source": "僅怪物掉落",
+      "description": "沒有護甲，沒有重量——只有一個多出來的位置，留給你還沒想到的東西。",
       "note": "",
       "iconIndex": 12
     },
@@ -626,6 +646,7 @@
       ],
       "icon": "img/equipment/eq-0024.png",
       "source": "僅怪物掉落",
+      "description": "泰寧夫對兒子相當嚴苛，長年累積的訓練讓洛尼能毫不猶豫地直面痛苦。",
       "note": "",
       "iconIndex": 13
     },
@@ -673,6 +694,7 @@
       ],
       "icon": "img/equipment/eq-0025.png",
       "source": "僅怪物掉落",
+      "description": "魔法森林的入口有座泉，取之不盡，也用之不竭。",
       "note": "",
       "iconIndex": 14
     },
@@ -745,6 +767,7 @@
       ],
       "icon": "img/equipment/eq-0026.png",
       "source": "僅怪物掉落",
+      "description": "納希沙漠會吞噬每個不尊重水資源的蠢蛋。",
       "note": "",
       "iconIndex": 15
     },
@@ -790,7 +813,7 @@
           "unit": "percent"
         },
         {
-          "stat": "神聖魔力保留效率",
+          "stat": "荊棘魔力保留效率",
           "min": 15,
           "max": 25,
           "unit": "percent"
@@ -803,6 +826,7 @@
       ],
       "icon": "img/equipment/eq-0027.png",
       "source": "僅怪物掉落",
+      "description": "「降臨吧神聖彗星，將愚者的攻擊，化作審判他的光。」你對著一隻綠帶肥肥聲嘶力竭的大叫。",
       "note": "",
       "iconIndex": 16
     },
@@ -850,16 +874,12 @@
           "unit": "percent"
         },
         {
-          "stat": "封印避免異常機率",
-          "value": 100,
-          "unit": "percent"
-        },
-        {
           "text": "不會受到詛咒"
         }
       ],
       "icon": "img/equipment/eq-0028.png",
       "source": "僅怪物掉落",
+      "description": "鯨魚號全長286公尺，共6500噸的排水量，其主機可輸出逾四萬匹軸馬力，讓這個巨獸能在幾個小時內橫渡水世界。",
       "note": "",
       "iconIndex": 17
     },
@@ -911,6 +931,7 @@
       ],
       "icon": "img/equipment/eq-0029.png",
       "source": "僅怪物掉落",
+      "description": "「達克魯是墮落城市最出色的盜賊。據說，達克魯從時間神殿偷走自己未來的形體，此後眾人所見，皆只是他的虛影。」楓葉秘史〈卷十八〉",
       "note": "",
       "iconIndex": 18
     },
@@ -953,6 +974,7 @@
       ],
       "icon": "img/equipment/eq-0030.png",
       "source": "僅怪物掉落",
+      "description": "「五個互斥的問題，有一致的答案。」-弓箭手村的英雄赫麗娜",
       "note": "",
       "iconIndex": 19
     },
@@ -975,7 +997,7 @@
         },
         {
           "stat": "力量",
-          "value": 5,
+          "value": 10,
           "unit": "flat"
         }
       ],
@@ -998,6 +1020,7 @@
       ],
       "icon": "img/equipment/eq-0031.png",
       "source": "僅怪物掉落",
+      "description": "路塔尼亞預計在第四賽季同步推出楓之峽谷模式，同時我們計畫將史匹奈爾小姐定位為中路刺客角色。",
       "note": "",
       "iconIndex": 20
     },
@@ -1049,6 +1072,7 @@
       ],
       "icon": "img/equipment/eq-0032.png",
       "source": "僅怪物掉落",
+      "description": "施予折磨，承受折磨，享受折磨。",
       "note": "",
       "iconIndex": 21
     },
@@ -1089,6 +1113,7 @@
       ],
       "icon": "img/equipment/eq-0033.png",
       "source": "僅怪物掉落",
+      "description": "第一下是試探，後面全是真的。",
       "note": "",
       "iconIndex": 22
     },
@@ -1129,6 +1154,7 @@
       ],
       "icon": "img/equipment/eq-0034.png",
       "source": "僅怪物掉落",
+      "description": "箭落下來的時候沒有聲音，只有地面替它報數。",
       "note": "",
       "iconIndex": 23
     },
@@ -1169,6 +1195,7 @@
       ],
       "icon": "img/equipment/eq-0035.png",
       "source": "僅怪物掉落",
+      "description": "他數錢的手比握劍時更穩。",
       "note": "",
       "iconIndex": 24
     },
@@ -1200,6 +1227,7 @@
       ],
       "icon": "img/equipment/eq-0036.png",
       "source": "僅怪物掉落",
+      "description": "爪子伸出去的那一下，比它抓到什麼更重要。",
       "note": "",
       "iconIndex": 25
     },
@@ -1236,6 +1264,7 @@
       ],
       "icon": "img/equipment/eq-0037.png",
       "source": "僅怪物掉落",
+      "description": "天上掉下來的東西，從來不挑落點。",
       "note": "",
       "iconIndex": 26
     },
@@ -1266,6 +1295,7 @@
       ],
       "icon": "img/equipment/eq-0038.png",
       "source": "僅怪物掉落",
+      "description": "口袋越深，炸開來的時候越響。",
       "note": "",
       "iconIndex": 27
     },
@@ -1295,6 +1325,7 @@
       ],
       "icon": "img/equipment/eq-0039.png",
       "source": "僅怪物掉落",
+      "description": "鞋底的泥是十七座城鎮的，沒有一座留得住穿它的人。",
       "note": "",
       "iconIndex": 28
     },
@@ -1332,6 +1363,7 @@
       ],
       "icon": "img/equipment/eq-0040.png",
       "source": "僅怪物掉落",
+      "description": "阿勒斯將對長老斯坦的所有怨懟化作堅定的步伐，朝向墮落城市進發。",
       "note": "",
       "iconIndex": 29
     },
@@ -1375,6 +1407,7 @@
       ],
       "icon": "img/equipment/eq-0041.png",
       "source": "僅怪物掉落",
+      "description": "踩過的地方寸草不生。這雙鞋不負責解釋原因。",
       "note": "",
       "iconIndex": 30
     },
@@ -1418,6 +1451,7 @@
       ],
       "icon": "img/equipment/eq-0042.png",
       "source": "僅怪物掉落",
+      "description": "穿上它後最好別碰水，也別碰別人。",
       "note": "",
       "iconIndex": 31
     },
@@ -1467,6 +1501,7 @@
       ],
       "icon": "img/equipment/eq-0043.png",
       "source": "僅怪物掉落",
+      "description": "鞋主人活了下來。至於他當時在逃離什麼，沒有人問出口。",
       "note": "",
       "iconIndex": 32
     },
@@ -1510,6 +1545,7 @@
       ],
       "icon": "img/equipment/eq-0044.png",
       "source": "僅怪物掉落",
+      "description": "白巫師走得很慢。瘴氣纏上他的鞋，聖光浸不穿他的腳步。",
       "note": "",
       "iconIndex": 33
     },
@@ -1548,6 +1584,7 @@
       ],
       "icon": "img/equipment/eq-0045.png",
       "source": "僅怪物掉落",
+      "description": "停下來的每一秒，傷口都在替他記帳。",
       "note": "",
       "iconIndex": 34
     },
@@ -1603,6 +1640,7 @@
       ],
       "icon": "img/equipment/eq-0046.png",
       "source": "僅怪物掉落",
+      "description": "鞋跟拖出的紅光不是血。是他跑得太快，來不及讓血跟上。",
       "note": "",
       "iconIndex": 35
     },
@@ -1631,6 +1669,16 @@
       ],
       "affix": [
         {
+          "stat": "冰緩避免異常機率",
+          "value": 100,
+          "unit": "percent"
+        },
+        {
+          "stat": "暈眩避免異常機率",
+          "value": 100,
+          "unit": "percent"
+        },
+        {
           "text": "不會被擊退"
         },
         {
@@ -1642,6 +1690,7 @@
       ],
       "icon": "img/equipment/eq-0047.png",
       "source": "僅怪物掉落",
+      "description": "推不動的東西，最後都會被讓路。",
       "note": "",
       "iconIndex": 36
     },
@@ -1685,6 +1734,7 @@
       ],
       "icon": "img/equipment/eq-0048.png",
       "source": "僅怪物掉落",
+      "description": "能量匯聚，期待宇宙回應。",
       "note": "",
       "iconIndex": 37
     },
@@ -1730,6 +1780,7 @@
       ],
       "icon": "img/equipment/eq-0049.png",
       "source": "僅怪物掉落",
+      "description": "單從車縫線與皮革材質觀察，跟真的精品無致，要不是賣家在墮落城市的下水道擺地攤，你大概也會上當。",
       "note": "",
       "iconIndex": 38
     },
@@ -1765,11 +1816,12 @@
           "unit": "percent"
         },
         {
-          "text": "套裝、上衣、裙袍無視能力值需求。"
+          "text": "套裝、上衣、褲裙無視能力值需求。"
         }
       ],
       "icon": "img/equipment/eq-0050.png",
       "source": "僅怪物掉落",
+      "description": "楓之島地下購物台的頭牌商品，愛美的你可不能錯過。",
       "note": "",
       "iconIndex": 39
     },
@@ -1803,11 +1855,6 @@
           "unit": "flat"
         },
         {
-          "stat": "群體治癒．蠱毒技能等級",
-          "value": 2,
-          "unit": "flat"
-        },
-        {
           "stat": "冰冷屬性抗性",
           "min": 20,
           "max": 50,
@@ -1822,6 +1869,7 @@
       ],
       "icon": "img/equipment/eq-0051.png",
       "source": "僅怪物掉落",
+      "description": "彷彿把黃金海岸披在身上。",
       "note": "",
       "iconIndex": 40
     },
@@ -1854,6 +1902,16 @@
           "unit": "percent"
         },
         {
+          "stat": "移動速度上限",
+          "value": 60,
+          "unit": "flat"
+        },
+        {
+          "stat": "跳躍力上限",
+          "value": 30,
+          "unit": "flat"
+        },
+        {
           "text": "最大移動速度為200%"
         },
         {
@@ -1862,6 +1920,7 @@
       ],
       "icon": "img/equipment/eq-0052.png",
       "source": "僅怪物掉落",
+      "description": "伊卡路斯知道這樣下去不是辦法，於是他把三種披風各取下一部分，拜託明明夫人用針線拼湊起來。",
       "note": "",
       "iconIndex": 41
     },
@@ -1920,6 +1979,7 @@
       ],
       "icon": "img/equipment/eq-0053.png",
       "source": "僅怪物掉落",
+      "description": "「披風的原主人住在冰原雪域群峰中的古堡裡，偶爾會款待迷途的冒險家。他衣著考究，談吐優雅，可惜有副森森白牙。」楓葉秘史〈卷十四〉",
       "note": "",
       "iconIndex": 42
     },
@@ -1963,6 +2023,7 @@
       ],
       "icon": "img/equipment/eq-0054.png",
       "source": "僅怪物掉落",
+      "description": "「榮恩你聽我說，這玩意兒比魔杖好用！」",
       "note": "",
       "iconIndex": 43
     },
@@ -1994,6 +2055,7 @@
       ],
       "icon": "img/equipment/eq-0055.png",
       "source": "僅怪物掉落",
+      "description": "「我才不信，他肯定是把變化卷軸藏在手裡。」妖精維英大聲質疑。",
       "note": "",
       "iconIndex": 44
     },
@@ -2022,13 +2084,12 @@
           "unit": "percent"
         },
         {
-          "stat": "毒素異常疊層額外累積機率",
-          "value": 50,
-          "unit": "percent"
+          "text": "擊中造成中毒時，有50%機率額外疊加1層。"
         }
       ],
       "icon": "img/equipment/eq-0056.png",
       "source": "僅怪物掉落",
+      "description": "由勇士之村南部最大的風獨眼獸處理場製成，過程稍嫌噁心，在此略過不提。",
       "note": "",
       "iconIndex": 45
     },
@@ -2060,6 +2121,7 @@
       ],
       "icon": "img/equipment/eq-0057.png",
       "source": "僅怪物掉落",
+      "description": "人生有時候就是得扮演不只一個角色。",
       "note": "",
       "iconIndex": 46
     },
@@ -2096,6 +2158,7 @@
       ],
       "icon": "img/equipment/eq-0058.png",
       "source": "僅怪物掉落",
+      "description": "漢斯曾相信知識無可衡量，後來，他則替每個答案標上價碼。",
       "note": "",
       "iconIndex": 47
     },
@@ -2118,7 +2181,7 @@
         },
         {
           "stat": "力量",
-          "value": 5,
+          "value": 10,
           "unit": "flat"
         }
       ],
@@ -2152,6 +2215,7 @@
       ],
       "icon": "img/equipment/eq-0059.png",
       "source": "僅怪物掉落",
+      "description": "極北之處，死亡會發生在結冰後。",
       "note": "",
       "iconIndex": 48
     },
@@ -2186,11 +2250,12 @@
         },
         {
           "stat": "力量",
-          "value": 5,
+          "min": 4,
+          "max": 8,
           "unit": "percent"
         },
         {
-          "stat": "攻擊技能等級",
+          "stat": "近戰技能等級",
           "value": 2,
           "unit": "flat"
         },
@@ -2200,6 +2265,7 @@
       ],
       "icon": "img/equipment/eq-0060.png",
       "source": "僅怪物掉落",
+      "description": "「別難過，誰也不能決定自己的出生。」好心的冒險家對牠說。",
       "note": "",
       "iconIndex": 49
     },
@@ -2248,6 +2314,7 @@
       ],
       "icon": "img/equipment/eq-0061.png",
       "source": "僅怪物掉落",
+      "description": "使用期間指尖如產生麻痺感，係產品功能傳導之正常現象。",
       "note": "",
       "iconIndex": 50
     },
@@ -2290,7 +2357,8 @@
       ],
       "icon": "img/equipment/eq-0062.png",
       "source": "僅怪物掉落",
-      "note": "獵人只戴一邊。 另一邊要留給風聲。",
+      "description": "獵人只戴一邊。 另一邊要留給風聲。",
+      "note": "",
       "iconIndex": 51
     },
     {
@@ -2335,7 +2403,8 @@
       ],
       "icon": "img/equipment/eq-0063.png",
       "source": "僅怪物掉落",
-      "note": "她把痛苦置換，不再感受，卻永留心中。",
+      "description": "她把痛苦置換，不再感受，卻永留心中。",
+      "note": "",
       "iconIndex": 52
     },
     {
@@ -2377,7 +2446,8 @@
       ],
       "icon": "img/equipment/eq-0064.png",
       "source": "僅怪物掉落",
-      "note": "據說戴著它跳起來的人，落地時總比別人晚一拍。",
+      "description": "據說戴著它跳起來的人，落地時總比別人晚一拍。",
+      "note": "",
       "iconIndex": 53
     },
     {
@@ -2420,7 +2490,8 @@
       ],
       "icon": "img/equipment/eq-0065.png",
       "source": "僅怪物掉落",
-      "note": "貓不會替你打架，但它總知道哪裡有值錢的東西。",
+      "description": "貓不會替你打架，但它總知道哪裡有值錢的東西。",
+      "note": "",
       "iconIndex": 54
     },
     {
@@ -2463,7 +2534,8 @@
       ],
       "icon": "img/equipment/eq-0066.png",
       "source": "僅怪物掉落",
-      "note": "救人的手不見得乾淨，但總比空著好。",
+      "description": "救人的手不見得乾淨，但總比空著好。",
+      "note": "",
       "iconIndex": 55
     },
     {
@@ -2536,7 +2608,8 @@
       ],
       "icon": "img/equipment/eq-0067.png",
       "source": "僅怪物掉落",
-      "note": "「任何人有三百萬美金，都可以參加慈善撲克王大賽。」",
+      "description": "「任何人有三百萬美金，都可以參加慈善撲克王大賽。」",
+      "note": "",
       "iconIndex": 56
     },
     {
@@ -2570,7 +2643,8 @@
       ],
       "icon": "img/equipment/eq-0068.png",
       "source": "僅怪物掉落",
-      "note": "他向眾神祈求無所不能，眾神表面答應，背地卻暗施詭計。",
+      "description": "他向眾神祈求無所不能，眾神表面答應，背地卻暗施詭計。",
+      "note": "",
       "iconIndex": 57
     },
     {
@@ -2611,7 +2685,8 @@
       ],
       "icon": "img/equipment/eq-0069.png",
       "source": "僅怪物掉落",
-      "note": "綠色的!",
+      "description": "綠色的!",
+      "note": "",
       "iconIndex": 58
     },
     {
@@ -2694,7 +2769,8 @@
       ],
       "icon": "img/equipment/eq-0070.png",
       "source": "僅怪物掉落",
-      "note": "六百多年後，亞凱斯特終令萬物相容。烈焰與霜雪並存，雷霆與劇毒共生。",
+      "description": "六百多年後，亞凱斯特終令萬物相容。烈焰與霜雪並存，雷霆與劇毒共生。",
+      "note": "",
       "iconIndex": 59
     },
     {
@@ -2737,6 +2813,7 @@
       ],
       "icon": "img/equipment/eq-0071.png",
       "source": "僅怪物掉落",
+      "description": "第一批被稱為傳說的東西，其實只是被人記住得比較久。",
       "note": "",
       "iconIndex": 60
     },
@@ -2774,6 +2851,7 @@
       ],
       "icon": "img/equipment/eq-0072.png",
       "source": "僅怪物掉落",
+      "description": "退潮之後留下的東西，比漲潮時看見的多。",
       "note": "",
       "iconIndex": 61
     },
@@ -2817,6 +2895,7 @@
       ],
       "icon": "img/equipment/eq-0073.png",
       "source": "僅怪物掉落",
+      "description": "一下不夠。兩下也不夠。",
       "note": "",
       "iconIndex": 62
     },
@@ -2861,11 +2940,12 @@
           "stat": "傷害減免",
           "min": 15,
           "max": 25,
-          "unit": "percent"
+          "unit": "flat"
         }
       ],
       "icon": "img/equipment/eq-0074.png",
       "source": "僅怪物掉落",
+      "description": "戴上它的人不是不怕，只是不打算後退。",
       "note": "",
       "iconIndex": 63
     },
@@ -2908,6 +2988,7 @@
       ],
       "icon": "img/equipment/eq-0075.png",
       "source": "僅怪物掉落",
+      "description": "射得夠遠的話，星星也只是另一個靶。",
       "note": "",
       "iconIndex": 64
     },
@@ -2951,6 +3032,7 @@
       ],
       "icon": "img/equipment/eq-0076.png",
       "source": "僅怪物掉落",
+      "description": "真正厲害的咒語不需要唸出聲。",
       "note": "",
       "iconIndex": 65
     },
@@ -2994,6 +3076,7 @@
       ],
       "icon": "img/equipment/eq-0077.png",
       "source": "僅怪物掉落",
+      "description": "煉金術師沒能把鉛變成金，倒是把自己變快了。",
       "note": "",
       "iconIndex": 66
     },
@@ -3037,6 +3120,7 @@
       ],
       "icon": "img/equipment/eq-0078.png",
       "source": "僅怪物掉落",
+      "description": "鑽石最硬的那一面，被磨成了最薄的那一刃。",
       "note": "",
       "iconIndex": 67
     },
@@ -3086,6 +3170,7 @@
       ],
       "icon": "img/equipment/eq-0079.png",
       "source": "僅怪物掉落",
+      "description": "她的裁決像月光：照得清清楚楚，也冷得毫不留情。",
       "note": "",
       "iconIndex": 68
     },
@@ -3135,6 +3220,7 @@
       ],
       "icon": "img/equipment/eq-0080.png",
       "source": "僅怪物掉落",
+      "description": "燒起來之後還會爛下去。有人說這才叫徹底。",
       "note": "",
       "iconIndex": 69
     },
@@ -3178,6 +3264,7 @@
       ],
       "icon": "img/equipment/eq-0081.png",
       "source": "僅怪物掉落",
+      "description": "莉琳把它送出去的那天說：戴著它的人，傷口好得比較慢。她指的是敵人。",
       "note": "",
       "iconIndex": 70
     },
@@ -3234,6 +3321,7 @@
       ],
       "icon": "img/equipment/eq-0001.png",
       "source": "僅怪物掉落",
+      "description": "冷兵器時代之後，便是塑膠兵器時代！",
       "note": "",
       "iconIndex": 71
     },
@@ -3286,6 +3374,7 @@
       ],
       "icon": "img/equipment/eq-0082.png",
       "source": "僅怪物掉落",
+      "description": "說實話，這麼好的東西，你大可不必還給他。",
       "note": "",
       "iconIndex": 72
     },
@@ -3341,6 +3430,7 @@
       ],
       "icon": "img/equipment/eq-0007.png",
       "source": "僅怪物掉落",
+      "description": "觸手溫熱，但你並不確定這東西上次是被用在哪個部位。",
       "note": "",
       "iconIndex": 73
     },
@@ -3409,6 +3499,7 @@
       ],
       "icon": "img/equipment/eq-0083.png",
       "source": "僅怪物掉落",
+      "description": "這把劍在平原、盆地、河谷、丘陵其實也都可以使用。",
       "note": "",
       "iconIndex": 74
     },
@@ -3459,6 +3550,7 @@
       ],
       "icon": "img/equipment/eq-0006.png",
       "source": "僅怪物掉落",
+      "description": "「少年辛德打造的第一柄斧，輕得不像一件武器。於是他在另一側補上一刃，使錯誤成為傳說。」楓葉秘史〈卷六〉",
       "note": "",
       "iconIndex": 75
     },
@@ -3513,6 +3605,7 @@
       ],
       "icon": "img/equipment/eq-0003.png",
       "source": "僅怪物掉落",
+      "description": "「我比較少擦拭它，怎麼說？我其實挺喜歡這個顏色。」劍士轉職教官。",
       "note": "",
       "iconIndex": 76
     },
@@ -3559,11 +3652,17 @@
           "unit": "flat"
         },
         {
+          "stat": "指定技能等級",
+          "value": 2,
+          "unit": "flat"
+        },
+        {
           "text": "此裝備同時視為所有類型的武器"
         }
       ],
       "icon": "img/equipment/eq-0004.png",
       "source": "僅怪物掉落",
+      "description": "「據說奇幻村深處有一種古老而罕見的生物，他們在高山生出翅，在水底長出鰓。」楓葉秘史〈卷五〉",
       "note": "",
       "iconIndex": 77
     },
@@ -3614,6 +3713,7 @@
       ],
       "icon": "img/equipment/eq-0009.png",
       "source": "僅怪物掉落",
+      "description": "碳水化合物是人類第二忠誠的朋友。",
       "note": "",
       "iconIndex": 78
     },
@@ -3666,6 +3766,7 @@
       ],
       "icon": "img/equipment/eq-0005.png",
       "source": "僅怪物掉落",
+      "description": "黑暗籠罩大地時，優伊娜女神將三道恩賜賦予那些最勇敢的反抗者。",
       "note": "",
       "iconIndex": 79
     },
@@ -3731,6 +3832,7 @@
       ],
       "icon": "img/equipment/eq-0010.png",
       "source": "僅怪物掉落",
+      "description": "V=IR，即電阻為零時電壓也為零，然而，不代表電流也為零。",
       "note": "",
       "iconIndex": 80
     },
@@ -3781,6 +3883,7 @@
       ],
       "icon": "img/equipment/eq-0002.png",
       "source": "僅怪物掉落",
+      "description": "「我爸是水世界議會議長、漁會主委海怒斯，識相的話就快放了我！」叉子上的魚凶狠地警告你。",
       "note": "",
       "iconIndex": 81
     },
@@ -3826,7 +3929,7 @@
           "stat": "保留生命",
           "min": 15,
           "max": 35,
-          "unit": "flat"
+          "unit": "percent"
         },
         {
           "stat": "每點保留生命換傷害",
@@ -3837,6 +3940,7 @@
       ],
       "icon": "img/equipment/eq-0008.png",
       "source": "僅怪物掉落",
+      "description": "「槍出如龍，嗜血的禁果！」勇士之村的義安",
       "note": "",
       "iconIndex": 82
     },
@@ -3901,6 +4005,7 @@
       ],
       "icon": "img/equipment/eq-0084.png",
       "source": "僅怪物掉落",
+      "description": "妖精艾溫曾經持有的短杖，據說她的玻璃鞋有股怪味。",
       "note": "",
       "iconIndex": 83
     },
@@ -3968,6 +4073,7 @@
       ],
       "icon": "img/equipment/eq-0085.png",
       "source": "僅怪物掉落",
+      "description": "每個維京的船上幾乎都有一把這玩意兒。顯然這些大鬍子並沒有打算理會玩具城的環保政策。",
       "note": "",
       "iconIndex": 84
     },
@@ -4023,6 +4129,7 @@
       ],
       "icon": "img/equipment/eq-0086.png",
       "source": "僅怪物掉落",
+      "description": "智慧為漢斯揭示魔法的界線，野心則說服他超越。",
       "note": "",
       "iconIndex": 85
     },
@@ -4064,6 +4171,7 @@
       ],
       "icon": "img/equipment/eq-0087.png",
       "source": "僅怪物掉落",
+      "description": "看見所有方向的代價，是無法決定該射向哪裡。",
       "note": "",
       "iconIndex": 86
     },
@@ -4112,7 +4220,7 @@
           "unit": "percent"
         },
         {
-          "stat": "寒冰箭額外觸身後發射",
+          "stat": "寒冰箭額外朝身後發射",
           "value": 1,
           "unit": "flat"
         },
@@ -4122,6 +4230,7 @@
       ],
       "icon": "img/equipment/eq-0088.png",
       "source": "僅怪物掉落",
+      "description": "獵人守則第一條：確認身後。第二條：拿著霜禍時，別管第一條。",
       "note": "",
       "iconIndex": 87
     },
@@ -4177,6 +4286,7 @@
       ],
       "icon": "img/equipment/eq-0089.png",
       "source": "僅怪物掉落",
+      "description": "「把箭頭磨利，是殺死敵人的捷徑。」破風使者伊麗娜",
       "note": "",
       "iconIndex": 88
     },
@@ -4240,6 +4350,7 @@
       ],
       "icon": "img/equipment/eq-0090.png",
       "source": "僅怪物掉落",
+      "description": "在第四次偉大炎魔遠征中，指揮官蕾妮箭矢用盡，危急時她以魔力注入弓弦，射出了扭轉戰局的一箭。",
       "note": "",
       "iconIndex": 89
     },
@@ -4294,6 +4405,7 @@
       ],
       "icon": "img/equipment/eq-0091.png",
       "source": "僅怪物掉落",
+      "description": "墮落城市的小偷很多，有人偷錢，有人則偷別的東西。",
       "note": "",
       "iconIndex": 90
     },
@@ -4355,6 +4467,7 @@
       ],
       "icon": "img/equipment/eq-0092.png",
       "source": "僅怪物掉落",
+      "description": "神木村的草常綠，武陵山的人久居。",
       "note": "",
       "iconIndex": 91
     },
@@ -4413,6 +4526,7 @@
       ],
       "icon": "img/equipment/eq-0093.png",
       "source": "僅怪物掉落",
+      "description": "瘋狗不懂防守，但牠知道哪邊更接近喉嚨。",
       "note": "",
       "iconIndex": 92
     },
@@ -4468,6 +4582,7 @@
       ],
       "icon": "img/equipment/eq-0094.png",
       "source": "僅怪物掉落",
+      "description": "沒人記得後街吉姆姓什麼，但所有人都記得那雙金閃閃的拳套。",
       "note": "",
       "iconIndex": 93
     },
@@ -4528,6 +4643,7 @@
       ],
       "icon": "img/equipment/eq-0095.png",
       "source": "僅怪物掉落",
+      "description": "據說死神揮舞鐮刀時有一半的視野被遮蔽，麥吉從不相信，可洽此獲得生機。",
       "note": "",
       "iconIndex": 94
     },
@@ -4581,6 +4697,7 @@
       ],
       "icon": "img/equipment/eq-0096.png",
       "source": "僅怪物掉落",
+      "description": "「無數冒險者前仆後繼，幾萬枚齒輪堆滿行李，我們深信鑽石就在，下一具妖魔屍體。」吟遊詩人坎特《時間之終章》",
       "note": "",
       "iconIndex": 95
     },
@@ -4623,6 +4740,7 @@
       ],
       "icon": "img/equipment/eq-0097.png",
       "source": "僅怪物掉落",
+      "description": "「所以我裝備這東西後，應該會比較強對吧？」",
       "note": "",
       "iconIndex": 96
     },
@@ -4680,6 +4798,7 @@
       ],
       "icon": "img/equipment/eq-0098.png",
       "source": "僅怪物掉落",
+      "description": "「神木村的工匠摩斯與噴火龍一族交情匪淺，族長每年都會寄來一塊可以做成盾牌的龍鱗，他則回報一箱薰衣草口味的萬能療傷藥。」楓葉秘史〈卷十三〉",
       "note": "",
       "iconIndex": 97
     },
@@ -4725,6 +4844,7 @@
       ],
       "icon": "img/equipment/eq-0099.png",
       "source": "僅怪物掉落",
+      "description": "古老的沙影組織會將先祖記憶封入寶物，由子孫承襲反抗阿里安特王權暴政。",
       "note": "",
       "iconIndex": 98
     },
@@ -4767,6 +4887,7 @@
       ],
       "icon": "img/equipment/eq-0100.png",
       "source": "僅怪物掉落",
+      "description": "從不融化的那一塊，拔下來的人說，屋簷底下還在長。",
       "note": "飛鏢",
       "iconIndex": 99
     }

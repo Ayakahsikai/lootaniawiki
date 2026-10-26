@@ -45,6 +45,7 @@ window.LOOTANIA_VERSIONS = {
 
 - 放在各版本資料夾：`data/<版本>/equipment.json`、`data/<版本>/equipment-icons.png`。
 - `equipment.js` 不用自己做：部署時 `tools/check_data.py` 會由 `equipment.json` 自動產生。本機版要看裝備，先在 repo 根目錄執行一次 `python tools/check_data.py`，就會在資料夾裡產生 `equipment.js`。
+- 裝備欄位：`description` 存放遊戲內裝備描述／風味文字，顯示於能力下方；`note` 存放額外註記（供天賦模擬等功能使用），不混入風味文字。兩欄均可搜尋。
 - 圖示：每件裝備的 `iconIndex` 對應 `equipment-icons.png` 的格子（0 起算、由左到右、由上到下，格子為正方形）。沒寫 `iconSheet` 時，網頁會依圖片尺寸自動推算欄數。
 - 沒有放裝備資料的版本，選單會顯示「尚無資料」。
 
