@@ -500,7 +500,14 @@ function parseQuery(raw) {
   // 組合套裝是額外分類，裝備仍保留原本的上衣、褲子等部位。
   const equipmentCats = (items, slots) => {
     const cats = slots.filter(sl => items.some(x => x.slot === sl)).map(sl => ({ id: sl, label: sl, test: x => x.slot === sl }));
-    const combo = { id: '組合套裝', label: '組合套裝', test: x => /同時裝備另一件/.test([x.desc, x.description, x.note, ...(x.base || []).map(m => m.text), ...(x.affix || []).map(m => m.text)].join(' ')) };
+    const comboIds = new Set(), comboNames = new Set();
+    for (const x of items) {
+      const text = [x.desc, x.description, x.note, ...(x.base || []).map(m => m.text), ...(x.affix || []).map(m => m.text)].join(' ');
+      if (!/同時裝備另一件/.test(text)) continue;
+      comboIds.add(x.id);
+      for (const match of text.matchAll(/同時裝備另一件\s*「([^」]+)」/g)) comboNames.add(match[1].trim());
+    }
+    const combo = { id: '組合套裝', label: '組合套裝', test: x => comboIds.has(x.id) || [...comboNames].some(name => x.name === name || x.name.startsWith(name + '．')) };
     if (items.some(combo.test)) cats.push(combo);
     return cats;
   };
