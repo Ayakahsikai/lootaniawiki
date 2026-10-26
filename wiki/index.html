@@ -328,6 +328,7 @@ a.wl.miss{color:var(--warn);border-bottom-style:dashed}
       <select id="sort" aria-label="排序">
         <option value="price">價格 低→高</option>
         <option value="lv">需求等級 低→高</option>
+        <option value="lv-d">需求等級 高→低</option>
         <option value="name">名稱</option>
         <option value="id">編號</option>
         <option value="price-d">價格 高→低</option>
@@ -916,6 +917,9 @@ function parseQuery(raw) {
 
   // 價格：取獲得方式裡的數字（例如「商店購買(160000)」）；沒有價格的排在最後；同價依需求等級、編號
   const byId = (a, b) => a.id.localeCompare(b.id);
+  const byName = (a, b) => a.name.localeCompare(b.name, 'zh-Hant') || byId(a, b);
+  const byLevel = dir => (a, b) => dir * (firstLv(a) - firstLv(b)) || byName(a, b);
+  const defaultSort = () => page.src === 'equipment' && curCat === '組合套裝' ? 'name' : page.defSort;
   const pr = s => { const m = String(s.source || '').replace(/[,，]/g, '').match(/\d+/g); return m ? Math.max(...m.map(Number)) : null; };
   const byPrice = dir => (a, b) => { const x = pr(a), y = pr(b); if (x === y) return firstLv(a) - firstLv(b) || byId(a, b); if (x == null) return 1; if (y == null) return -1; return (x - y) * dir; };
   function openPage(p, params) {
@@ -935,11 +939,11 @@ function parseQuery(raw) {
     // 沒有等級資料（符文）就拿掉「需求等級」排序，預設改用編號
     // 沒有價格（例如裝備「僅怪物掉落」）就拿掉價格排序，預設改用需求等級
     const hasLv = isEq || p.items.some(s => SC.levelsOf(s).length), hasPr = !src.card && p.items.some(s => pr(s) != null);   // 通貨、裝備的獲得方式不是價格
-    $('sort').querySelector('[value=lv]').hidden = !hasLv; $('sort').querySelector('[value=price]').hidden = $('sort').querySelector('[value=price-d]').hidden = !hasPr;
+    $('sort').querySelector('[value=lv]').hidden = $('sort').querySelector('[value=lv-d]').hidden = !hasLv; $('sort').querySelector('[value=price]').hidden = $('sort').querySelector('[value=price-d]').hidden = !hasPr;
     p.defSort = hasPr ? 'price' : hasLv ? 'lv' : 'id';   // 預設：價格 低→高
-    $('sort').value = params.get('sort') || p.defSort; if ($('sort').selectedOptions[0]?.hidden) $('sort').value = p.defSort;
-    $('home').hidden = true; $('none').hidden = true; $('app').hidden = false;
     curCat = catsOf().some(c => c.id === params.get('cat')) ? params.get('cat') : '';
+    $('sort').value = params.get('sort') || defaultSort(); if ($('sort').selectedOptions[0]?.hidden) $('sort').value = defaultSort();
+    $('home').hidden = true; $('none').hidden = true; $('app').hidden = false;
     renderCats(); renderTags(); render();
   }
   function renderTags() {
@@ -952,14 +956,14 @@ function parseQuery(raw) {
       && [...selTags].every(t => (s.tags || []).includes(t) || (s.compatTags || []).includes(t)) && Q.test(searchText(s)));
     const so = $('sort').value;
     // 價格：取獲得方式裡的數字（例如「商店購買(160000)」）；沒有價格的排在最後
-    list.sort(so === 'lv' ? (a, b) => firstLv(a) - firstLv(b) || byId(a, b) : so === 'name' ? (a, b) => a.name.localeCompare(b.name, 'zh-Hant') : so === 'price' ? byPrice(1) : so === 'price-d' ? byPrice(-1) : byId);
+    list.sort(so === 'lv' ? byLevel(1) : so === 'lv-d' ? byLevel(-1) : so === 'name' ? byName : so === 'price' ? byPrice(1) : so === 'price-d' ? byPrice(-1) : byId);
     useSheet(src);
     $('list').innerHTML = list.length ? `<section class="panel"><h2>${esc(w && src.card ? w : cat ? cat.label : page.label)} <span class="n">/${list.length}</span></h2>
       <div class="sk-wrap"><table class="items"><tbody>${list.map(s => cardOf(src).row(s, meta, Q.terms)).join('')}</tbody></table></div></section>`
       : `<p class="empty">${page.items.length ? '沒有符合條件的項目' : '尚無資料'}</p>`;
     // 篩選條件記在網址，重新整理或分享連結時保留
     const p = new URLSearchParams(); if (cat) p.set('cat', cat.id); if (raw) p.set('q', raw); if (w) p.set('weapon', w); if (selTags.size) p.set('tags', [...selTags].join(','));
-    if (so !== page.defSort) p.set('sort', so);
+    if (so !== defaultSort()) p.set('sort', so);
     const h = `#/${page.id}${p.toString() ? '?' + p : ''}`; listHash[page.id] = h;
     if (location.hash !== h && !location.hash.startsWith(`#/${page.id}/`)) { try { history.replaceState(null, '', h); } catch (e) {} }
   }
@@ -1066,7 +1070,7 @@ function parseQuery(raw) {
 
   /* ---------- 篩選事件 ---------- */
   $('subcats').addEventListener('click', e => { const a = e.target.closest('a[data-w]'); if (!a) return; e.preventDefault(); $('weapon').value = a.dataset.w; renderSub(); render(); });
-  $('cats').addEventListener('click', e => { const a = e.target.closest('a[data-c]'); if (!a) return; e.preventDefault(); curCat = a.dataset.c; renderCats(); render(); });
+  $('cats').addEventListener('click', e => { const a = e.target.closest('a[data-c]'); if (!a) return; e.preventDefault(); const prevDefault = defaultSort(); curCat = a.dataset.c; if (curCat === '組合套裝' || $('sort').value === prevDefault) $('sort').value = defaultSort(); renderCats(); render(); });
   $('tags').addEventListener('click', e => { const b = e.target.closest('button[data-t]'); if (!b) return; const t = b.dataset.t; selTags.has(t) ? selTags.delete(t) : selTags.add(t); renderTags(); render(); });
   let qt; $('q').addEventListener('input', () => { clearTimeout(qt); qt = setTimeout(render, 120); });
   $('sort').onchange = render; $('weapon').onchange = render;
