@@ -110,6 +110,12 @@ td.ic{width:76px}
 .mods .tx{color:var(--mod-text);font-style:italic}
 .it-foot{margin-top:4px;font-size:12px;color:var(--muted)}
 .it-description{margin-top:8px;font-size:13px;line-height:1.6;color:var(--accent)}
+.set-pieces{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.set-piece{min-width:0}.set-piece+.set-piece{border-left:1px solid var(--line)}
+.set-piece table.items{width:100%}.set-piece table.items td{border-top:0}
+.set-effect{padding:12px;border-top:1px solid var(--line);background:rgba(201,163,91,.06);line-height:1.7}
+.set-effect strong{display:block;color:var(--accent);margin-bottom:4px}.set-effect div{color:var(--mod)}
+@media (max-width:720px){.set-pieces{grid-template-columns:1fr}.set-piece+.set-piece{border-left:0;border-top:1px solid var(--line)}}
 .badge{display:inline-block;font-size:11px;padding:0 5px;border-radius:2px;border:1px solid var(--warn);color:var(--warn);margin-right:6px;line-height:16px}
 mark{background:rgba(201,163,91,.33);color:inherit;border-radius:2px}
 .empty{color:var(--muted);padding:24px 0;text-align:center}
@@ -500,16 +506,24 @@ function parseQuery(raw) {
     weaponTypes: ['單手劍', '雙手劍', '單手斧', '雙手斧', '單手棍', '雙手棍', '短劍', '拳套', '槍矛', '弓弩', '短杖', '長杖'].map(id => ({ id })), attackSpeeds: { 3: '更快', 4: '快', 5: '快', 6: '普通', 7: '慢', 8: '慢' },
     requirements: ['level', 'str', 'dex', 'int', 'luk'], requirementLabels: { level: '裝備等級', str: '力量', dex: '敏捷', int: '智力', luk: '幸運' } };
   // 組合套裝是額外分類，裝備仍保留原本的上衣、褲子等部位。
+  const equipmentSets = items => {
+    const groups = new Map();
+    for (const item of items) {
+      const texts = [item.desc, item.description, item.note, ...(item.base || []).map(m => m.text), ...(item.affix || []).map(m => m.text)];
+      for (const text of texts) for (const match of String(text || '').matchAll(/同時裝備另一件\s*「([^」]+)」/g)) {
+        const name = match[1].trim();
+        if (!groups.has(name)) groups.set(name, { name, ids: new Set(), effects: new Set() });
+        const group = groups.get(name); group.ids.add(item.id);
+        const effect = String(text).slice(match.index + match[0].length).replace(/^[\s，,：:]+/, '');
+        if (effect) group.effects.add(effect);
+      }
+    }
+    return [...groups.values()].map(g => ({ name: g.name, effects: [...g.effects], items: items.filter(x => g.ids.has(x.id) || x.name === g.name || x.name.startsWith(g.name + '．')) }));
+  };
   const equipmentCats = (items, slots) => {
     const cats = slots.filter(sl => items.some(x => x.slot === sl)).map(sl => ({ id: sl, label: sl, test: x => x.slot === sl }));
-    const comboIds = new Set(), comboNames = new Set();
-    for (const x of items) {
-      const text = [x.desc, x.description, x.note, ...(x.base || []).map(m => m.text), ...(x.affix || []).map(m => m.text)].join(' ');
-      if (!/同時裝備另一件/.test(text)) continue;
-      comboIds.add(x.id);
-      for (const match of text.matchAll(/同時裝備另一件\s*「([^」]+)」/g)) comboNames.add(match[1].trim());
-    }
-    const combo = { id: '組合套裝', label: '組合套裝', test: x => comboIds.has(x.id) || [...comboNames].some(name => x.name === name || x.name.startsWith(name + '．')) };
+    const groups = equipmentSets(items), comboIds = new Set(groups.flatMap(g => g.items.map(x => x.id)));
+    const combo = { id: '組合套裝', label: '組合套裝', n: `${groups.length} 組`, test: x => comboIds.has(x.id) };
     if (items.some(combo.test)) cats.push(combo);
     return cats;
   };
@@ -543,7 +557,17 @@ function parseQuery(raw) {
         <div class="s">${props(it, meta, []).replace(/class="ln"/g, '')}</div><div class="s">${reqLine(it, meta)}</div>
         ${md ? `<div class="s">${md.replace(/<div class="">/g, '<div class="m">')}</div>` : ''}${it.description ? `<div class="s"><div class="it-description"><i>${esc(it.description).replace(/\n/g, '<br>')}</i></div></div>` : ''}${it.source ? `<div class="s"><span class="k">獲得方式：</span>${esc(it.source)}</div>` : ''}`; }
     const searchText = it => [it.name, it.id, it.slot, it.weaponType, it.description, it.note, it.source, ...(it.base || []).map(modText), ...(it.affix || it.hidden || []).map(modText)].join(' ');
-    return { row, tip, iconHTML, searchText, typeOf, tipClass: 'itip' };
+    function sets(groups, matched, meta, terms) {
+      const rank = new Map(matched.map((x, i) => [x.id, i]));
+      const visible = groups.filter(g => g.items.some(x => rank.has(x.id))).sort((a, b) => Math.min(...a.items.map(x => rank.get(x.id) ?? Infinity)) - Math.min(...b.items.map(x => rank.get(x.id) ?? Infinity)));
+      return visible.map(g => {
+        const pieces = g.items.slice().sort((a, b) => (a.slot === '上衣' ? 0 : a.slot === '褲子' ? 1 : 2) - (b.slot === '上衣' ? 0 : b.slot === '褲子' ? 1 : 2) || a.name.localeCompare(b.name, 'zh-Hant'));
+        return `<section class="panel"><h2>${hl(g.name, terms)} <span class="n">${pieces.length} 件套</span></h2>
+          <div class="set-pieces">${pieces.map(it => `<div class="set-piece"><table class="items"><tbody>${row({ ...it, affix: (it.affix || it.hidden || []).filter(m => !/同時裝備另一件/.test(m.text || '')) }, meta, terms)}</tbody></table></div>`).join('')}</div>
+          <div class="set-effect"><strong>同時裝備效果 · 需裝備 2 件</strong>${g.effects.map(effect => `<div>${hl(effect, terms)}</div>`).join('')}</div></section>`;
+      }).join('');
+    }
+    return { row, tip, sets, iconHTML, searchText, typeOf, tipClass: 'itip' };
   })();
   /* ---------- 通貨顯示：種類、說明、獲得方式（圖示用 iconIndex 對應 currency-icons.png） ---------- */
   const CUR = (() => {
@@ -902,7 +926,7 @@ function parseQuery(raw) {
     if (page.src === 'equipment') return equipmentCats(page.items, meta.slots || []);
     return CATS[page.id] || []; };
   function renderCats() { const C = catsOf(); $('cats').hidden = !C.length; if (!C.length) { curCat = ''; return; }
-    $('cats').innerHTML = [{ id: '', label: '全部', n: page.items.length }, ...C.map(c => ({ ...c, n: page.items.filter(c.test).length }))]
+    $('cats').innerHTML = [{ id: '', label: '全部', n: page.items.length }, ...C.map(c => ({ ...c, n: c.n ?? page.items.filter(c.test).length }))]
       .map(c => `<a href="#" data-c="${c.id}" class="${curCat === c.id ? 'on' : ''}">${esc(c.label)}<span class="n">/${c.n}</span></a>`).join('');
     renderSub(); }
   // 裝備「武器」分類：第二排列出武器分類（單手劍、短杖…），取代武器下拉選單
@@ -959,8 +983,8 @@ function parseQuery(raw) {
     // 價格：取獲得方式裡的數字（例如「商店購買(160000)」）；沒有價格的排在最後
     list.sort(so === 'lv' ? byLevel(1) : so === 'lv-d' ? byLevel(-1) : so === 'name' ? byName : so === 'price' ? byPrice(1) : so === 'price-d' ? byPrice(-1) : byId);
     useSheet(src);
-    $('list').innerHTML = list.length ? `<section class="panel"><h2>${esc(w && src.card ? w : cat ? cat.label : page.label)} <span class="n">/${list.length}</span></h2>
-      <div class="sk-wrap"><table class="items"><tbody>${list.map(s => cardOf(src).row(s, meta, Q.terms)).join('')}</tbody></table></div></section>`
+    $('list').innerHTML = list.length ? (page.src === 'equipment' && curCat === '組合套裝' ? EQ.sets(equipmentSets(page.items), list, meta, Q.terms) : `<section class="panel"><h2>${esc(w && src.card ? w : cat ? cat.label : page.label)} <span class="n">/${list.length}</span></h2>
+      <div class="sk-wrap"><table class="items"><tbody>${list.map(s => cardOf(src).row(s, meta, Q.terms)).join('')}</tbody></table></div></section>`)
       : `<p class="empty">${page.items.length ? '沒有符合條件的項目' : '尚無資料'}</p>`;
     // 篩選條件記在網址，重新整理或分享連結時保留
     const p = new URLSearchParams(); if (cat) p.set('cat', cat.id); if (raw) p.set('q', raw); if (w) p.set('weapon', w); if (selTags.size) p.set('tags', [...selTags].join(','));
