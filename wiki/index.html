@@ -494,9 +494,16 @@ function parseQuery(raw) {
   // 資料依版本分資料夾：data/versions.js 列出版本，data/<版本資料夾>/skills.js、runes.js、圖示表
   let VDIR = DATA_DIR;   // 目前版本的資料夾（含結尾 /）
   /* ---------- 裝備顯示：屬性、需求、列表列、提示框（圖示用 iconIndex 對應 equipment-icons.png 的格子） ---------- */
-  const EQ_META = { slots: ['武器', '副手', '帽子', '衣服', '褲子', '鞋子', '手套', '披風', '耳環', '項鍊', '戒指', '腰帶', '其他'],
+  const EQ_META = { slots: ['武器', '副手', '帽子', '套服', '上衣', '褲子', '鞋子', '手套', '披風', '耳環', '項鍊', '戒指', '腰帶', '其他'],
     weaponTypes: ['單手劍', '雙手劍', '單手斧', '雙手斧', '單手棍', '雙手棍', '短劍', '拳套', '槍矛', '弓弩', '短杖', '長杖'].map(id => ({ id })), attackSpeeds: { 3: '更快', 4: '快', 5: '快', 6: '普通', 7: '慢', 8: '慢' },
     requirements: ['level', 'str', 'dex', 'int', 'luk'], requirementLabels: { level: '裝備等級', str: '力量', dex: '敏捷', int: '智力', luk: '幸運' } };
+  // 組合套裝是額外分類，裝備仍保留原本的上衣、褲子等部位。
+  const equipmentCats = (items, slots) => {
+    const cats = slots.filter(sl => items.some(x => x.slot === sl)).map(sl => ({ id: sl, label: sl, test: x => x.slot === sl }));
+    const combo = { id: '組合套裝', label: '組合套裝', test: x => /同時裝備另一件/.test([x.desc, x.description, x.note, ...(x.base || []).map(m => m.text), ...(x.affix || []).map(m => m.text)].join(' ')) };
+    if (items.some(combo.test)) cats.push(combo);
+    return cats;
+  };
   const EQ = (() => {
     const n = v => (typeof v === 'number' && isFinite(v)) ? String(+v.toFixed(2)) : '?';
     const u = m => m.unit === 'percent' ? '%' : '';
@@ -661,7 +668,7 @@ function parseQuery(raw) {
   // 某一頁的分類（給首頁「{{分類:通貨}}」用）：通貨＝種類、傳奇裝備＝部位、主動技能＝傷害／位移…
   function catsFor(p) { if (!p) return [];
     if (p.src === 'currency') return [...new Set(p.items.map(x => x.type).filter(Boolean))].map(t => ({ id: t, label: t }));
-    if (p.src === 'equipment') { const sl = ((SRC.equipment || {}).meta || {}).slots || EQ_META.slots; return sl.filter(x => p.items.some(i => i.slot === x)).map(x => ({ id: x, label: x })); }
+    if (p.src === 'equipment') return equipmentCats(p.items, ((SRC.equipment || {}).meta || {}).slots || EQ_META.slots).map(c => ({ id: c.id, label: c.label }));
     return (CATS[p.id] || []).map(c => ({ id: c.id, label: c.label })); }
   function mdLite(src) {
     // {{分類:通貨}} → 依目前資料自動列出該頁所有分類的連結（例：結晶、卷軸、箴言…），之後新增種類也會自動出現
@@ -883,7 +890,7 @@ function parseQuery(raw) {
   };
   const catsOf = () => { if (!page) return [];
     if (page.src === 'currency') return [...new Set(page.items.map(x => x.type).filter(Boolean))].map(t => ({ id: t, label: t, test: x => x.type === t }));
-    if (page.src === 'equipment') return (meta.slots || []).filter(sl => page.items.some(x => x.slot === sl)).map(sl => ({ id: sl, label: sl, test: x => x.slot === sl }));
+    if (page.src === 'equipment') return equipmentCats(page.items, meta.slots || []);
     return CATS[page.id] || []; };
   function renderCats() { const C = catsOf(); $('cats').hidden = !C.length; if (!C.length) { curCat = ''; return; }
     $('cats').innerHTML = [{ id: '', label: '全部', n: page.items.length }, ...C.map(c => ({ ...c, n: page.items.filter(c.test).length }))]
