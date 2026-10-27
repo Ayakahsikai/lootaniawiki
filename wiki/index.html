@@ -941,14 +941,14 @@ function parseQuery(raw) {
     if (page.src === 'currency') return [...new Set(page.items.map(x => x.type).filter(Boolean))].map(t => ({ id: t, label: t, test: x => x.type === t }));
     if (page.src === 'equipment') return equipmentCats(page.items, meta.slots || []);
     return CATS[page.id] || []; };
-  function renderCats() { const C = catsOf(); $('cats').hidden = !C.length; if (!C.length) { curCat = ''; return; }
+  function renderCats() { const C = catsOf(); $('cats').hidden = !C.length; if (!C.length) { curCat = ''; $('cats').innerHTML = ''; renderSub(); return; }
     $('cats').innerHTML = [{ id: '', label: '全部', n: page.items.length }, ...C.map(c => ({ ...c, n: c.n ?? page.items.filter(c.test).length }))]
       .map(c => `<a href="#" data-c="${c.id}" class="${curCat === c.id ? 'on' : ''}">${esc(c.label)}<span class="n">/${c.n}</span></a>`).join('');
     renderSub(); }
   // 裝備「武器」分類：第二排列出武器分類（單手劍、短杖…），取代武器下拉選單
   function renderSub() { const sub = $('subcats'), isEq = !!(src && src.card === EQ), on = isEq && curCat === '武器';
     if (isEq) $('weapon').hidden = true;
-    sub.hidden = !on; if (!on) { if (isEq) $('weapon').value = ''; return; }
+    sub.hidden = !on; if (!on) { sub.innerHTML = ''; if (isEq) $('weapon').value = ''; return; }
     const w = $('weapon').value, ws = [...$('weapon').options].map(o => o.value).filter(Boolean), all = page.items.filter(x => x.slot === '武器');
     sub.innerHTML = [['', '全部武器', all.length], ...ws.map(v => [v, v, all.filter(x => x.weaponType === v).length])]
       .map(([v, l, n]) => `<a href="#" data-w="${esc(v)}" class="${w === v ? 'on' : ''}">${esc(l)}<span class="n">/${n}</span></a>`).join(''); }
