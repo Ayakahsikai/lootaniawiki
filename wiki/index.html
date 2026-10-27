@@ -621,17 +621,21 @@ function parseQuery(raw) {
     { id: 'currency', menu: '物品', label: '通貨',     src: 'currency',  pick: () => true },
     { id: 'legend',  menu: '物品', label: '傳奇裝備', src: 'equipment', pick: () => true },
   ];
-  const MENUS = [...new Set(PAGES.map(p => p.menu))];
-  const pageOf = id => PAGES.find(p => p.id === id);
-  const pageOfItem = id => PAGES.find(p => p.items.some(s => s.id === id));
+  const EXTRA_PAGES = [
+    { id: 'curse-wheel', menu: '玩法', label: '詛咒之輪', js: 'curse-wheel.js', var: 'LOOTANIA_CURSE_WHEEL' },
+  ];
+  const extraPages = () => EXTRA_PAGES.filter(p => p.data && typeof p.data.body === 'string');
+  const dataPages = () => PAGES.filter(p => SRC[p.src].ok && p.items.length > 0);
+  const MENUS = [...new Set([...PAGES, ...EXTRA_PAGES].map(p => p.menu))];
+  const pageOf = id => dataPages().find(p => p.id === id);
+  const pageOfItem = id => dataPages().find(p => p.items.some(s => s.id === id));
 
   function renderMenu(cur) {
     $('menu').innerHTML = MENUS.map((m, i) => {
-      const ps = PAGES.filter(p => p.menu === m), on = ps.some(p => p === cur);
+      const ps = [...dataPages(), ...extraPages()].filter(p => p.menu === m), on = ps.some(p => p === cur);
+      if (!ps.length) return '';
       return `<li class="${on ? 'cur' : ''}"><span tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" data-mi="${i}">${esc(m)}<i class="caret">▼</i></span>
-        <ul class="drop">${ps.map(p => p.items.length
-          ? `<li><a href="#/${p.id}" class="${p === cur ? 'on' : ''}">${esc(p.label)}</a></li>`
-          : `<li><span class="off" title="尚無資料">${esc(p.label)}<small>尚無資料</small></span></li>`).join('')}</ul></li>`;
+        <ul class="drop">${ps.map(p => `<li><a href="#/${p.id}" class="${p === cur ? 'on' : ''}">${esc(p.label)}</a></li>`).join('')}</ul></li>`;
     }).join('');
   }
   // 觸控裝置沒有 hover：點選單名稱開關；點其他地方或選了項目就收起
@@ -704,17 +708,30 @@ function parseQuery(raw) {
     if (p.src === 'equipment') return equipmentCats(p.items, ((SRC.equipment || {}).meta || {}).slots || EQ_META.slots).map(c => ({ id: c.id, label: c.label }));
     return (CATS[p.id] || []).map(c => ({ id: c.id, label: c.label })); }
   function mdLite(src) {
+    const siteHash = url => { if (/^#\//.test(url)) return url; const m = /^https?:\/\/[^\/]+\/lootaniawiki\/?(?:index\.html)?(#\/.*)$/.exec(url); return m ? m[1] : null; };
+    const unavailable = url => {
+      const hash = siteHash(url); if (!hash) return false;
+      const id = hash.slice(2).split(/[/?]/)[0];
+      return (PAGES.some(p => p.id === id) && !pageOf(id)) ||
+        (EXTRA_PAGES.some(p => p.id === id) && !extraPages().some(p => p.id === id));
+    };
+    // 快速索引以分類連結開頭時，隱藏該版本不存在的整列；原始 home.js 保留。
+    src = String(src || '').split(/\r?\n/).filter(line => {
+      const m = /^\s*(?:[-*]\s+|・\s*)?\[[^\]\n]+\]\(((?:https?:\/\/|#\/)[^\s)]+)\)/.exec(line);
+      return !m || !unavailable(m[1]);
+    }).join('\n');
     // {{分類:通貨}} → 依目前資料自動列出該頁所有分類的連結（例：結晶、卷軸、箴言…），之後新增種類也會自動出現
     src = String(src).replace(/\{\{\s*分類\s*[:：]\s*(.+?)\s*\}\}/g, (all, l) => { const p = pageByLabel(l); if (!p) return all;
+      if (!pageOf(p.id)) return '';
       return catsFor(p).map(c => `[${c.label}](#/${p.id}?cat=${encodeURIComponent(c.id)})`).join('、'); });
     // [[技能名稱]]＝站內連結（技能→詳細頁、符文→列表）；[顯示文字](網址)＝命名連結；單獨的網址也會自動變成連結
     const bold = h => h.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
     // 連到本站（#/… 或 https://…/lootaniawiki/#/…）：同一頁內切換，不開新分頁；本機版也能用
-    const siteHash = url => { if (/^#\//.test(url)) return url; const m = /^https?:\/\/[^\/]+\/lootaniawiki\/?(?:index\.html)?(#\/.*)$/.exec(url); return m ? m[1] : null; };
     const inl = s => { const L = [], tok = h => `\u0000${L.push(h) - 1}\u0000`;
       s = String(s).replace(/\[\[([^\]\n|]+)(?:\|([^\]\n]+))?\]\]/g, (_, name, label, off, all) => wikiLink(name.trim(), (label || name).trim(), all.slice(0, off)))
         .replace(/\u0001(\d+)\u0001/g, (_, i) => tok(WL[+i]))
         .replace(/\[([^\]\n]+)\]\(((?:https?:\/\/|#\/)[^\s)]+)\)/g, (_, txt, url) => { const h = siteHash(url);
+          if (unavailable(url)) return '';
           return tok(h ? `<a href="${esc(h)}">${bold(esc(txt))}</a>` : `<a href="${esc(url)}" target="_blank" rel="noopener">${bold(esc(txt))}</a>`); });
       WL.length = 0;
       return bold(esc(s)).replace(/(https?:\/\/[^\s<\u0000]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\u0000(\d+)\u0000/g, (_, i) => L[+i]); };
@@ -795,8 +812,7 @@ function parseQuery(raw) {
   }
   function renderHome() {
     $('crumb').innerHTML = ''; $('crumb').hidden = true;
-    const miss = Object.values(SRC).filter(s => !s.ok);
-    $('home').innerHTML = (homeEditing ? infoForm() : infoView()) + (miss.length ? missingHint(miss) : '');
+    $('home').innerHTML = homeEditing ? infoForm() : infoView();
     $('home').hidden = false; $('app').hidden = true; $('none').hidden = true;
     document.title = 'LOOTANIA Wiki';
     if (homeEditing) { ed = { secs: mdToSecs(home.body), mode: 'block' }; renderSecs(); $('hSeason').focus(); }
@@ -1082,10 +1098,25 @@ function parseQuery(raw) {
   function route() {
     tip.hidden = true; closeMenus(); $('detail').hidden = true;
     const h = location.hash.replace(/^#\/?/, ''), [path, qs] = h.split('?'), params = new URLSearchParams(qs || ''), seg = path.split('/');
+    const extra = extraPages().find(p => p.id === seg[0]);
+    if (extra) {
+      renderMenu(extra);
+      $('home').hidden = true; $('app').hidden = true; $('none').hidden = true;
+      $('crumb').hidden = false;
+      $('crumb').innerHTML = `<a href="#/">首頁</a><span>›</span>${esc(extra.menu)}<span>›</span>${esc(extra.label)}`;
+      document.title = `${extra.label} · LOOTANIA Wiki`;
+      $('detail').hidden = false;
+      $('detail').innerHTML = `<section class="panel"><h2>${esc(extra.label)}</h2><div class="body">${esc(extra.data.body).replace(/\n/g, '<br>')}</div></section>`;
+      scrollTo(0, 0); return;
+    }
+    if (EXTRA_PAGES.some(p => p.id === seg[0])) history.replaceState(null, '', location.pathname + location.search + '#/');
     let p = pageOf(seg[0]), item = seg[1] || '';
     if (!p && /^(sk|rn|eq|cur)-\d+$/.test(seg[0])) { item = seg[0]; p = pageOfItem(item); }   // 舊連結 #sk-0042
     renderMenu(p);
-    if (!p) { renderHome(); scrollTo(0, 0); return; }
+    if (!p) {
+      if (PAGES.some(q => q.id === seg[0])) history.replaceState(null, '', location.pathname + location.search + '#/');
+      renderHome(); scrollTo(0, 0); return;
+    }
     if (item && DETAIL_SRC.has(p.src)) { openDetail(p, item); scrollTo(0, 0); return; }
     openPage(p, params);
     if (item) { const el = document.getElementById(item); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1600); } }
@@ -1139,6 +1170,13 @@ function parseQuery(raw) {
   async function loadVersion(v) {
     curV = v; VDIR = DATA_DIR + (v.dir ? String(v.dir).replace(/\/?$/, '/') : '');
     const inl = window.WIKI_INLINE && window.WIKI_INLINE[v.dir];   // 預覽版：資料直接內嵌
+    // 額外頁面依版本資料檔顯示；切版前清空，避免沿用上一版的資料。
+    for (const p of EXTRA_PAGES) {
+      p.data = null; window[p.var] = undefined;
+      if (inl) window[p.var] = inl[p.id];
+      else await loadScript(VDIR + p.js);
+      p.data = window[p.var] || null;
+    }
     for (const [k, s] of Object.entries(SRC)) { window[s.var] = undefined; if (inl) window[s.var] = inl[k] || inl[s.list]; else await loadScript(VDIR + s.js); }
     initData(); for (const k of Object.keys(listHash)) delete listHash[k];
     renderVer(); renderFoot(); route();
