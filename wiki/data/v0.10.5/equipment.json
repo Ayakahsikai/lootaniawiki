@@ -546,21 +546,9 @@
       ],
       "affix": [
         {
-          "stat": "MP",
+          "stat": "最大魔力",
           "min": 10,
           "max": 20,
-          "unit": "percent"
-        },
-        {
-          "stat": "地印傷害",
-          "min": 40,
-          "max": 50,
-          "unit": "percent"
-        },
-        {
-          "stat": "地印MP消耗",
-          "min": 40,
-          "max": 50,
           "unit": "percent"
         },
         {
@@ -568,6 +556,18 @@
         },
         {
           "text": "2秒內主動使用技能累積消耗100點魔力獲得一層地印，最多20層；2秒內未獲得新的地印時失去所有層數"
+        },
+        {
+          "stat": "每層地印技能消耗",
+          "min": 40,
+          "max": 50,
+          "unit": "percent"
+        },
+        {
+          "stat": "每層地印法術傷害",
+          "min": 40,
+          "max": 50,
+          "unit": "percent"
         }
       ],
       "icon": "img/equipment/eq-0022.png",
