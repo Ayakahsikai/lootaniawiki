@@ -1,4 +1,2 @@
 /* 此版本有這份資料時，選單會顯示「詛咒之輪」。body 可使用換行。 */
-window.LOOTANIA_CURSE_WHEEL = {
-  "body": "內容待補充。"
-};
+window.LOOTANIA_CURSE_WHEEL = {"body":"","instructions":[{"title":"啟動方式","image":"curse-wheel-activation.png","imageAlt":"由左至右依序輸入右、上、上、下方向鍵的啟動範例","description":"到輪旁邊按 ↑，會出現以下圖示。\n由左至右，依序按下畫面顯示的方向鍵來啟動輪。\n圖示範例：→ ↑ ↑ ↓（右、上、上、下）。實際順序請依遊戲畫面提示操作。"},{"title":"輪的詛咒","icon":"curse-wheel-curse.svg","description":"地圖上的輪出現約 5 分鐘後，打怪將無法取得經驗與掉落物。啟動地圖上的輪即可解除。"},{"title":"封印之輪的力量","icon":"curse-wheel-seal.svg","description":"剛啟動過輪，10 分鐘內不能再啟動輪，期間不受輪的詛咒影響經驗、掉落，仍受地圖詛咒影響。"}],"iconSheet":{"file":"curse-wheel-icons.png","cell":82,"cols":4,"rows":1,"count":4},"icons":[{"iconIndex":0,"label":"豐饒之輪","description":"獲得的經驗值 +100%。"},{"iconIndex":1,"label":"毀滅之輪","description":"傷害增幅 +30%。"},{"iconIndex":2,"label":"恢復之輪","description":"啟動時生命與魔力全滿，之後每秒回復 2% 最大生命與魔力。"},{"iconIndex":3,"label":"迅捷之輪","description":"移動速度 +20%，攻擊速度與施法速度 +10%。"}]};

@@ -311,6 +311,16 @@ a.wl.miss{color:var(--warn);border-bottom-style:dashed}
 @media (max-width:720px){.ver-sel{margin-left:0}.gsearch{order:5;width:100%;margin:0 0 6px}.gsearch input{width:100%}}
 .drop-hint{border:1px dashed var(--line-2);border-radius:4px;padding:24px;color:var(--muted);line-height:1.9;margin-top:10px}
 .drop-hint b{color:var(--white)}
+.curse-icons{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}
+.curse-icons figure,.curse-instruction{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 16px;margin:0;padding:16px;border:1px solid var(--line);border-radius:4px;text-align:left}
+.curse-icons .icon,.curse-instruction .icon{grid-row:span 2;margin:0;flex:none}
+.curse-icons figcaption{font-size:15px;font-weight:bold}
+.curse-icons .curse-effect{margin:0;font-size:14px;line-height:1.7}
+.curse-instruction + .curse-instruction{margin-top:12px}
+.curse-instruction h3,.curse-instruction p{margin:0}
+.curse-instruction img{width:100%;height:100%;object-fit:contain}
+.curse-instruction .curse-example{grid-column:1 / -1;display:block;width:100%;max-width:616px;height:auto;margin-top:10px;border-radius:4px}
+.curse-instruction:not(:has(.icon)){grid-template-columns:minmax(0,1fr)}
 </style>
 </head>
 <body>
@@ -1106,7 +1116,13 @@ function parseQuery(raw) {
       $('crumb').innerHTML = `<a href="#/">首頁</a><span>›</span>${esc(extra.menu)}<span>›</span>${esc(extra.label)}`;
       document.title = `${extra.label} · LOOTANIA Wiki`;
       $('detail').hidden = false;
-      $('detail').innerHTML = `<section class="panel"><h2>${esc(extra.label)}</h2><div class="body">${esc(extra.data.body).replace(/\n/g, '<br>')}</div></section>`;
+      const sheet = extra.data.iconSheet;
+      const icons = sheet ? (extra.data.icons || []).filter(icon => Number.isInteger(icon.iconIndex) && icon.iconIndex >= 0 && icon.iconIndex < sheet.count) : [];
+      SC.setSheet(sheet ? { ...sheet, src: VDIR + sheet.file } : null);
+      const instructions = extra.data.instructions || [];
+      $('detail').innerHTML = `${instructions.length ? `<section class="panel"><h2>玩法說明</h2><div class="body">${instructions.map(item => `<div class="curse-instruction">${item.icon ? `<div class="icon"><img src="${esc(VDIR + item.icon)}" alt="${esc(item.title)}"></div>` : ''}<h3>${esc(item.title)}</h3><p>${esc(item.description).replace(/\n/g, '<br>')}</p>${item.image ? `<img class="curse-example" src="${esc(VDIR + item.image)}" alt="${esc(item.imageAlt || item.title)}">` : ''}</div>`).join('')}</div></section>` : ''}<section class="panel"><h2>${esc(extra.label)}</h2><div class="body">
+        ${icons.length ? `<div class="curse-icons">${icons.map(icon => `<figure><div class="icon" role="img" aria-label="${esc(icon.label || extra.label)}">${SC.sprite(icon.iconIndex)}</div><figcaption>${esc(icon.label || '')}</figcaption>${icon.description ? `<p class="curse-effect">${esc(icon.description).replace(/\n/g, '<br>')}</p>` : ''}</figure>`).join('')}</div>` : ''}
+        ${extra.data.body ? `<p>${esc(extra.data.body).replace(/\n/g, '<br>')}</p>` : ''}</div></section>`;
       scrollTo(0, 0); return;
     }
     if (EXTRA_PAGES.some(p => p.id === seg[0])) history.replaceState(null, '', location.pathname + location.search + '#/');
