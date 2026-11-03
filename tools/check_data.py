@@ -60,21 +60,27 @@ if V is not None:
     vs = V.get('versions') if isinstance(V.get('versions'), list) else []
     if not vs: errs.append('versions.js: versions 沒有任何版本')
     names = [v.get('version') for v in vs]; dirs = [v.get('dir') for v in vs]
-    for k, arr in (('version', names), ('dir', dirs)):
+    # aliases：內容沒變、只是遊戲版本號更新時，不用複製資料夾，把舊版本號寫進新版本的 aliases
+    for v in vs:
+        if 'aliases' in v and not (isinstance(v['aliases'], list) and all(isinstance(a, str) and a for a in v['aliases'])):
+            errs.append(f'versions.js: {v.get("version")} 的 aliases 要是版本名稱的陣列'); v['aliases'] = []
+    allnames = names + [a for v in vs for a in v.get('aliases') or []]
+    for k, arr in (('version／aliases', allnames), ('dir', dirs)):
         dup = sorted({str(x) for x in arr if arr.count(x) > 1})
         if dup: errs.append(f'versions.js: {k} 重複 {", ".join(dup)}')
-    if vs and V.get('latest') not in names: errs.append(f'versions.js: latest「{V.get("latest")}」不在 versions 清單裡')
+    canon = {a: v.get('version') for v in vs for a in [v.get('version')] + (v.get('aliases') or [])}
+    if vs and V.get('latest') not in canon: errs.append(f'versions.js: latest「{V.get("latest")}」不在 versions 清單（或 aliases）裡')
     for v in vs:
         name, d = v.get('version'), v.get('dir')
         if not name or not d: errs.append(f'versions.js: 每一筆都要有 version 和 dir（{v}）'); continue
         if not re.fullmatch(r'[\w.-]+', d): errs.append(f'versions.js: dir「{d}」只能用英數字、點、底線、減號'); continue
         vdir = os.path.join(D, d)
-        print(f'版本 {name}（data/{d}/）')
+        print(f'版本 {name}（data/{d}/）' + (f'，同 {"、".join(v["aliases"])}' if v.get('aliases') else ''))
         if not os.path.isdir(vdir): errs.append(f'找不到資料夾 {rel(vdir)}（versions.js 的 {name}）'); continue
         for js, var, key, jn in (('skills.js', 'LOOTANIA_SKILLS', 'skills', 'skills.json'), ('runes.js', 'LOOTANIA_RUNES', 'runes', 'runes.json')):
             p = os.path.join(vdir, js); data = load_js(p, var); check_list(data, p, key, vdir)
             if data is None: continue
-            if data.get('gameVersion') and data['gameVersion'] != name:
+            if data.get('gameVersion') and data['gameVersion'] != name and data['gameVersion'] not in (v.get('aliases') or []):
                 warns.append(f'{rel(p)}: 檔內 gameVersion「{data["gameVersion"]}」和 versions.js 的「{name}」不同（請確認放對資料夾）')
             pj = os.path.join(vdir, jn)
             if not os.path.exists(pj): warns.append(f'找不到 {rel(pj)}（網站可正常顯示，但天賦模擬讀不到這份資料）')
@@ -95,7 +101,7 @@ def check_items(vdir, name, outdir, base, var):
     if dup: errs.append(f'{rel(pj)}: 編號重複 {", ".join(dup)}')
     for x in items:
         if not x.get('name'): errs.append(f'{rel(pj)}: {x.get("id")} 沒有名稱')
-    if d.get('gameVersion') and d['gameVersion'] != name:
+    if d.get('gameVersion') and d['gameVersion'] != name and d['gameVersion'] not in next((x.get('aliases') or [] for x in (V or {}).get('versions') or [] if x.get('version') == name), []):
         warns.append(f'{rel(pj)}: 檔內 gameVersion「{d["gameVersion"]}」和 versions.js 的「{name}」不同（請確認放對資料夾）')
     sheet = (d.get('iconSheet') or {}).get('file') or base + '-icons.png'
     if any(isinstance(x.get('iconIndex'), int) for x in items) and not os.path.exists(os.path.join(vdir, sheet)):
@@ -136,7 +142,7 @@ if errs: sys.exit(1)
 out = sys.argv[1] if len(sys.argv) > 1 else None
 if out and V is not None:
     os.makedirs(out, exist_ok=True)
-    json.dump({'latest': V['latest'], 'versions': [{'version': v['version'], 'dir': v['dir'], **({'note': v['note']} if v.get('note') else {})} for v in V['versions']]},
+    json.dump({'latest': canon.get(V['latest'], V['latest']), 'versions': [{'version': v['version'], 'dir': v['dir'], **({'aliases': v['aliases']} if v.get('aliases') else {}), **({'note': v['note']} if v.get('note') else {})} for v in V['versions']]},
               open(os.path.join(out, 'versions.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
     print(f'已產生 {os.path.join(out, "versions.json")}')
 print('檢查通過')

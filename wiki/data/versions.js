@@ -4,12 +4,13 @@
  * 找不到同名版本時，天賦模擬會改用 latest。
  */
 window.LOOTANIA_VERSIONS = {
-  "latest": "LOOTANIA Beta v 0.11.0",
+  "latest": "LOOTANIA Beta v 0.11.5",
   "versions": [
     {
-      "version": "LOOTANIA Beta v 0.11.0",
+      "version": "LOOTANIA Beta v 0.11.5",
       "dir": "v0.11.0",
-      "note": ""
+      "note": "",
+      "aliases": ["LOOTANIA Beta v 0.11.0", "LOOTANIA Beta v 0.11.1", "LOOTANIA Beta v 0.11.2", "LOOTANIA Beta v 0.11.3", "LOOTANIA Beta v 0.11.4", "LOOTANIA Beta v 0.11.5", ]
     },
     {
       "version": "LOOTANIA Beta v 0.10.5",

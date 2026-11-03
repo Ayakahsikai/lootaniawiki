@@ -1172,13 +1172,15 @@ function parseQuery(raw) {
   /* ---------- 版本切換：預設最新版；網址 ?v=資料夾 可指定版本 ---------- */
   const VL = window.LOOTANIA_VERSIONS;
   const VERS = VL && Array.isArray(VL.versions) && VL.versions.length ? VL : null;
-  const latestV = VERS ? (VERS.versions.find(v => v.version === VERS.latest) || VERS.versions[0]) : null;
+  // aliases：內容沒變、只是遊戲版本號更新時，舊版本號寫在新版本的 aliases，舊連結（?v=舊版本號）也能對應
+  const verOf = name => VERS && VERS.versions.find(v => v.version === name || v.dir === name || (v.aliases || []).includes(name));
+  const latestV = VERS ? (verOf(VERS.latest) || VERS.versions[0]) : null;
   let curV = null;
   const loadScript = src => new Promise(res => { const el = document.createElement('script'); el.src = src;
     el.onload = () => { el.remove(); res(true); }; el.onerror = () => { el.remove(); res(false); }; document.head.appendChild(el); });
   function renderVer() {
     $('verBox').hidden = !VERS; if (!VERS) return;
-    $('ver').innerHTML = VERS.versions.map((v, i) => `<option value="${i}"${v === curV ? ' selected' : ''}>${esc(v.version)}${v === latestV ? '（最新）' : ''}</option>`).join('');
+    $('ver').innerHTML = VERS.versions.map((v, i) => `<option value="${i}"${v === curV ? ' selected' : ''}${(v.aliases || []).length ? ` title="${esc('內容同 ' + v.aliases.join('、'))}"` : ''}>${esc(v.version)}${v === latestV ? '（最新）' : ''}</option>`).join('');
     const old = curV && curV !== latestV;
     $('verOld').hidden = !old;
     if (old) $('verOld').innerHTML = `目前顯示 <b>${esc(curV.version)}</b> 的資料，不是最新版。<button id="verLatest">切換到最新版（${esc(latestV.version)}）</button>`;
@@ -1247,7 +1249,7 @@ function parseQuery(raw) {
   (function boot() {
     if (!VERS) { loadVersion({ version: '', dir: '' }); return; }   // 沒有 versions.js：直接讀資料夾裡的 skills.js（舊結構）
     let want = null; try { want = new URLSearchParams(location.search).get('v'); } catch (e) {}
-    loadVersion(VERS.versions.find(v => v.dir === want || v.version === want) || latestV);
+    loadVersion((want && verOf(want)) || latestV);
   })();
 })();
 </script>
