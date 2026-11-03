@@ -10,7 +10,7 @@ window.LOOTANIA_VERSIONS = {
       "version": "LOOTANIA Beta v 0.11.5",
       "dir": "v0.11.0",
       "note": "",
-      "aliases": ["LOOTANIA Beta v 0.11.0", "LOOTANIA Beta v 0.11.1", "LOOTANIA Beta v 0.11.2", "LOOTANIA Beta v 0.11.3", "LOOTANIA Beta v 0.11.4", "LOOTANIA Beta v 0.11.5", ]
+      "aliases": ["LOOTANIA Beta v 0.11.0", "LOOTANIA Beta v 0.11.1", "LOOTANIA Beta v 0.11.2", "LOOTANIA Beta v 0.11.3", "LOOTANIA Beta v 0.11.4" ]
     },
     {
       "version": "LOOTANIA Beta v 0.10.5",
