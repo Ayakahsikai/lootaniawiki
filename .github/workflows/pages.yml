@@ -1,15 +1,20 @@
 # 把 wiki/ 發佈成 GitHub Pages 網站：
 #   wiki/  →  網站根目錄    https://<帳號>.github.io/<repo>/
 # 使用前：Settings → Pages → Build and deployment → Source 選「GitHub Actions」
+# 每天台灣時間 00:05 自動執行一次：把 home.js 裡已結束的活動搬到 archive.js 並 commit 回 main，再重新部署
+#   （網站本身會依期間即時隱藏活動，排程只是整理檔案；GitHub 排程可能延遲數十分鐘）
+#   需要：Settings → Actions → General → Workflow permissions 選「Read and write permissions」
 name: Deploy GitHub Pages
 
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: '5 16 * * *'   # UTC 16:05 = 台灣 00:05
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write   # 排程整理活動後 commit 回 repo
   pages: write
   id-token: write
 
@@ -22,6 +27,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: 已結束活動移到 archive.js
+        if: github.ref == 'refs/heads/main'
+        run: |
+          set -euo pipefail
+          python3 tools/check_data.py --archive
+          if git diff --quiet -- wiki/data/home.js wiki/data/archive.js && test -z "$(git ls-files --others -- wiki/data/archive.js)"; then
+            echo "沒有需要移動的活動"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add wiki/data/home.js wiki/data/archive.js
+            git commit -m "自動整理：已結束活動移到 archive.js"
+            ok=""; for i in 1 2 3; do if git pull --rebase origin main && git push origin HEAD:main; then ok=1; break; fi; sleep 5; done
+            test -n "$ok" || { echo "::error::無法 push 回 main（檢查 Workflow permissions 是否為 Read and write）"; exit 1; }
+          fi
+          git checkout -- . 2>/dev/null || true   # 只保留上面 commit 的內容，其他檢查時產生的檔案不留
 
       - name: 組合網站
         run: |

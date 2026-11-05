@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """檢查 wiki/data 的資料，並產生 versions.json（給天賦模擬讀取）。
    GitHub Actions 部署前會執行；本機也可以執行：python tools/check_data.py
-   有錯誤時結束碼為 1（停止部署）。"""
+   有錯誤時結束碼為 1（停止部署）。
+   python tools/check_data.py --archive：把 home.js 裡已結束的活動移到 archive.js（網站本身已會自動隱藏，這只是整理檔案）。"""
 import json, os, re, sys
+from datetime import datetime, timedelta, timezone
+ARCHIVE = '--archive' in sys.argv
+sys.argv = [a for a in sys.argv if a != '--archive']
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'wiki')
 D = os.path.join(ROOT, 'data')
 errs, warns = [], []
@@ -126,6 +130,54 @@ if h is not None:
         st = h['start'] if 'T' in h['start'] else h['start'] + 'T00:00'
         en = h['end'] if 'T' in h['end'] else h['end'] + 'T23:59'
         if en < st: errs.append('home.js: 結束時間早於開始時間')
+# ---------- 活動期間與過去的活動（archive.js） ----------
+TW = timezone(timedelta(hours=8))
+EV_RE = re.compile(r'^\s*(?:活動)?期間\s*[:：]\s*(.+?)\s*[～~至到]\s*(.+?)\s*$')
+FOLD_RE = re.compile(r'^\s*(?:公告|活動|[\U0001F000-\U0001FAFF☀-➿])')
+def ev_time(t, end):
+    m = re.fullmatch(r'(\d{4})[/-](\d{1,2})[/-](\d{1,2})(?:[ T](\d{1,2}):(\d{2}))?', t.strip())
+    if not m: return None
+    y, mo, d = map(int, m.groups()[:3])
+    hh, mm = (int(m[4]), int(m[5])) if m[4] else ((23, 59) if end else (0, 0))
+    try: return datetime(y, mo, d, hh, mm, 59 if end and not m[4] else 0, tzinfo=TW)
+    except ValueError: return None
+def sections(md):
+    out, cur = [], {'title': '', 'lines': []}; out.append(cur)
+    for l in (md or '').splitlines():
+        if re.match(r'#{1,3}\s+', l): cur = {'title': re.sub(r'^#{1,3}\s+', '', l).strip(), 'lines': [l]}; out.append(cur)
+        else: cur['lines'].append(l)
+    return [x for x in out if x['title'] or '\n'.join(x['lines']).strip()]
+def check_periods(fname, md):
+    ended = []
+    for x in sections(md):
+        if not x['title'] or not FOLD_RE.match(x['title']): continue
+        for l in x['lines']:
+            m = EV_RE.match(l)
+            if not m: continue
+            st, en = ev_time(m[1], False), ev_time(m[2], True)
+            if not st or not en: errs.append(f'{fname}:「{x["title"]}」期間格式不對（{l.strip()}），應為 期間：2026/10/10 18:00 ～ 2026/10/28 18:00'); break
+            if en < st: errs.append(f'{fname}:「{x["title"]}」結束早於開始')
+            elif en < datetime.now(TW): ended.append(x)
+            break
+    return ended
+ar_path = os.path.join(D, 'archive.js')
+ar = load_js(ar_path, 'LOOTANIA_ARCHIVE', required=False) if os.path.exists(ar_path) else {'body': ''}
+if ar is not None:
+    if not isinstance(ar.get('body', ''), str): errs.append('archive.js: body 應為文字')
+    else: check_periods('archive.js', ar.get('body', ''))
+if h is not None and isinstance(h.get('body'), str):
+    ended = check_periods('home.js', h['body'])
+    if ended and ARCHIVE and ar is not None and not errs:
+        keep = [x for x in sections(h['body']) if x not in ended]
+        h['body'] = '\n'.join('\n'.join(x['lines']) for x in keep).strip('\n')
+        ar['body'] = '\n\n'.join(['\n'.join(x['lines']).strip('\n') for x in ended] + ([ar['body'].strip('\n')] if ar.get('body') else []))
+        t = open(os.path.join(D, 'home.js'), encoding='utf-8').read()
+        head = t[:re.search(r'window\.LOOTANIA_HOME\s*=\s*', t).start()]
+        open(os.path.join(D, 'home.js'), 'w', encoding='utf-8').write(head + 'window.LOOTANIA_HOME = ' + json.dumps(h, ensure_ascii=False, indent=2) + ';\n')
+        open(ar_path, 'w', encoding='utf-8').write('/* 過去的公告與活動（已結束的活動會移到這裡，首頁不顯示；網站「過去的公告與活動」頁面會列出） */\nwindow.LOOTANIA_ARCHIVE = ' + json.dumps(ar, ensure_ascii=False, indent=2) + ';\n')
+        print('已把 ' + '、'.join(f'「{x["title"]}」' for x in ended) + ' 從 home.js 移到 archive.js')
+    elif ended:
+        warns.append('home.js: 已結束（首頁已自動隱藏）：' + '、'.join(f'「{x["title"]}」' for x in ended) + '。要整理檔案可執行 python tools/check_data.py --archive')
 cr = load_js(os.path.join(D, 'credits.js'), 'LOOTANIA_CREDITS', required=False)   # 頁尾感謝名單（選用）
 if cr is not None:
     gs = cr.get('groups')

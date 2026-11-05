@@ -213,6 +213,10 @@ table.items tr{scroll-margin-top:calc(var(--nav-h,47px) + 70px)}
 @media (max-width:720px){.gs-drop{left:0;right:auto;width:100%}}
 
 /* 首頁：公告區塊收合 */
+.ev-period{margin:4px 0 8px;color:var(--muted);font-size:13px}
+.ev-st{margin-left:8px;padding:1px 7px;border-radius:9px;font-size:11.5px;border:1px solid var(--line-2)}
+.ev-st.on{color:#7fd37f;border-color:#3d6b3d}.ev-st.soon{color:#e0b060;border-color:#6b5530}.ev-st.ended{color:#999}
+.arc-link{display:inline-block;margin:8px 0 2px;font-size:13px}
 .md-fold{margin:10px 0;border:1px solid var(--line-2);border-radius:4px;background:#151515}
 .md-fold>summary{cursor:pointer;padding:8px 12px;color:var(--accent);font-weight:600;list-style:none}
 .md-fold>summary::-webkit-details-marker{display:none}
@@ -500,6 +504,7 @@ function parseQuery(raw) {
 <script src="data/versions.js"></script>
 <script src="data/home.js"></script>
 <script src="data/credits.js"></script>
+<script src="data/archive.js"></script>
 <script>
 (() => {
   const $ = id => document.getElementById(id), SC = SkillCard, esc = SC.esc;
@@ -711,6 +716,27 @@ function parseQuery(raw) {
     return `\u0001${WL.push(h) - 1}\u0001`;
   }
   const MD_FOLD = /^\s*(?:公告|活動|\p{Extended_Pictographic})/u;   // 收合區塊的標題
+  /* ---------- 活動期間：收合區塊裡寫「期間：2026/10/10 18:00 ～ 2026/10/28 18:00」（台灣時間）
+     只在期間內顯示在首頁；還沒開始的不顯示，結束的移到「過去的公告與活動」（#/archive） ---------- */
+  const EV_RE = /^\s*(?:活動)?期間\s*[:：]\s*(.+?)\s*[～~至到]\s*(.+?)\s*$/;
+  function evTime(t, end) { const m = /^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})(?:[ T](\d{1,2}):(\d{2}))?$/.exec(String(t || '').trim()); if (!m) return null;
+    const hm = m[4] != null ? `${m[4].padStart(2, '0')}:${m[5]}:00` : (end ? '23:59:59' : '00:00:00');
+    const d = new Date(`${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}T${hm}+08:00`); return isNaN(d) ? null : d; }
+  // 把 Markdown 依「## 標題」切成區塊；區塊有期間時附上開始／結束時間
+  function mdSections(md) { const out = []; let cur = { title: '', lines: [] }; out.push(cur);
+    for (const l of String(md || '').split(/\r?\n/)) { if (/^#{1,3}\s+/.test(l)) { cur = { title: l.replace(/^#{1,3}\s+/, '').trim(), lines: [l] }; out.push(cur); } else cur.lines.push(l); }
+    for (const x of out) { x.text = x.lines.join('\n'); x.ev = null;
+      if (x.title && MD_FOLD.test(x.title)) for (const l of x.lines) { const m = EV_RE.exec(l); if (m) { x.ev = { start: evTime(m[1], false), end: evTime(m[2], true), raw: l.trim() }; break; } } }
+    return out.filter(x => x.title || x.text.trim()); }
+  const evState = (x, now = new Date()) => !x.ev ? 'always' : (x.ev.start && now < x.ev.start) ? 'soon' : (x.ev.end && now > x.ev.end) ? 'ended' : 'on';
+  // 首頁顯示用：拿掉還沒開始、已結束的活動（home.js 原文不變，編輯時仍看得到）
+  const homeShown = md => mdSections(md).filter(x => { const st = evState(x); return st === 'always' || st === 'on'; }).map(x => x.text).join('\n');
+  // 過去的公告與活動：archive.js 的內容 ＋ home.js 裡已結束的活動
+  function archiveSections() {
+    const A = window.LOOTANIA_ARCHIVE, list = [];
+    for (const x of mdSections((A && A.body) || '')) if (x.title) list.push(x);
+    for (const x of mdSections(home.body)) if (evState(x) === 'ended' && !list.some(y => y.title === x.title)) list.push(x);
+    return list.sort((a, b) => ((b.ev && b.ev.end) || 0) - ((a.ev && a.ev.end) || 0)); }
   const MD_LI = /^\s*(?:[-*]\s+|・\s*)/;   // 清單：「- 」「* 」或「・」（・後面可不空格）
   // 某一頁的分類（給首頁「{{分類:通貨}}」用）：通貨＝種類、傳奇裝備＝部位、主動技能＝傷害／位移…
   function catsFor(p) { if (!p) return [];
@@ -754,6 +780,8 @@ function parseQuery(raw) {
       const l = raw.trimEnd();
       if (/^#{1,3}\s+/.test(l)) { flushP(); flushL(); endFold(); const t = l.replace(/^#{1,3}\s+/, '');
         if (MD_FOLD.test(t)) { out += `<details class="md-fold"><summary>${inl(t)}</summary><div class="md-fold-b">`; fold = true; } else out += `<h3>${inl(t)}</h3>`; }
+      else if (fold && EV_RE.test(l)) { flushP(); flushL(); const m = EV_RE.exec(l), x = { ev: { start: evTime(m[1], false), end: evTime(m[2], true) } }, st = evState(x);
+        out += `<p class="ev-period">📅 活動期間：${esc(m[1])} ～ ${esc(m[2])}（台灣時間）<span class="ev-st ${st}">${{ on: '進行中', soon: '尚未開始', ended: '已結束' }[st]}</span></p>`; }
       else if (MD_LI.test(l)) { flushP(); if (!list) { out += '<ul>'; list = true; } out += `<li>${inl(l.replace(MD_LI, ''))}</li>`; }
       else if (!l.trim()) { flushP(); flushL(); }
       else { flushL(); para.push(l); }
@@ -767,7 +795,8 @@ function parseQuery(raw) {
     return `<section class="panel info"><h2>${esc(home.season || '賽季資訊')}${st ? `<span class="ss ${st.cls}">${st.txt}</span>` : ''}${CAN_EDIT ? '<button class="info-edit" id="infoEdit">編輯</button>' : ''}</h2>
       <div class="body">${range ? `<div class="info-range">賽季期間：${range}</div>` : ''}
       ${homeNotice ? `<p class="info-note">${esc(homeNotice)}</p>` : ''}
-      ${empty ? `<p class="sk-mut">${CAN_EDIT ? `尚未填寫賽季資訊。按右上角「編輯」填入賽季名稱、期間與內容，儲存後會寫入 <b>home.js</b>（和${DATA_DIR ? ' skills.js 同一個資料夾' : '這個頁面放在同一個資料夾'}）。` : '目前沒有賽季資訊。'}</p>` : `<div class="info-md">${mdLite(home.body)}</div>`}
+      ${empty ? `<p class="sk-mut">${CAN_EDIT ? `尚未填寫賽季資訊。按右上角「編輯」填入賽季名稱、期間與內容，儲存後會寫入 <b>home.js</b>（和${DATA_DIR ? ' skills.js 同一個資料夾' : '這個頁面放在同一個資料夾'}）。` : '目前沒有賽季資訊。'}</p>` : `<div class="info-md">${mdLite(homeShown(home.body))}</div>`}
+      ${(() => { const n = archiveSections().length; return n ? `<a class="arc-link" href="#/archive">📁 過去的公告與活動（${n}）›</a>` : ''; })()}
       ${home.updatedAt ? `<div class="info-upd">資訊更新：${fmtDate(home.updatedAt)}</div>` : ''}</div></section>`;
   }
   /* ---- 編輯器：區塊式（標題＋說明＋項目），也可切換成原始碼；存檔時轉成同一份 Markdown ---- */
@@ -1108,6 +1137,12 @@ function parseQuery(raw) {
   function route() {
     tip.hidden = true; closeMenus(); $('detail').hidden = true;
     const h = location.hash.replace(/^#\/?/, ''), [path, qs] = h.split('?'), params = new URLSearchParams(qs || ''), seg = path.split('/');
+    if (seg[0] === 'archive') { renderMenu(null); $('app').hidden = true; $('none').hidden = true; $('crumb').hidden = false;
+      $('crumb').innerHTML = `<a href="#/">首頁</a><span>›</span>過去的公告與活動`; document.title = '過去的公告與活動 · LOOTANIA Wiki';
+      const L = archiveSections();
+      $('home').innerHTML = `<section class="panel info"><h2>過去的公告與活動</h2><div class="body"><div class="info-md">${L.length ? mdLite(L.map(x => x.text).join('\n\n')) : '<p class="sk-mut">目前沒有過去的公告或活動。</p>'}</div>
+        <a class="arc-link" href="#/">‹ 回首頁</a></div></section>`;
+      $('home').hidden = false; scrollTo(0, 0); return; }
     const extra = extraPages().find(p => p.id === seg[0]);
     if (extra) {
       renderMenu(extra);
