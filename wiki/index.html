@@ -310,9 +310,10 @@ a.wl.miss{color:var(--warn);border-bottom-style:dashed}
 .gsearch{margin-left:auto;position:relative}
 .ver-sel{margin-left:10px;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);white-space:nowrap}
 .ver-sel select{font-size:12.5px;padding:3px 6px;max-width:220px}
+.lang-sel{margin-left:8px}.lang-sel select{max-width:110px}
 .ver-old{margin:0 0 10px;padding:8px 12px;border:1px solid #5a4826;background:#1d1708;color:#e9d3a3;border-radius:4px;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .ver-old b{color:#fff}.ver-old button{margin-left:auto;font-size:12px;padding:3px 10px;border-color:var(--accent);color:var(--accent)}
-@media (max-width:720px){.ver-sel{margin-left:0}.gsearch{order:5;width:100%;margin:0 0 6px}.gsearch input{width:100%}}
+@media (max-width:720px){.ver-sel{margin-left:0}.lang-sel{margin-left:8px}.gsearch{order:5;width:100%;margin:0 0 6px}.gsearch input{width:100%}}
 .drop-hint{border:1px dashed var(--line-2);border-radius:4px;padding:24px;color:var(--muted);line-height:1.9;margin-top:10px}
 .drop-hint b{color:var(--white)}
 .curse-icons{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}
@@ -334,6 +335,7 @@ a.wl.miss{color:var(--warn);border-bottom-style:dashed}
     <ul class="menu" id="menu"></ul>
     <div class="gsearch" id="gsBox"><input type="search" id="gq" placeholder="搜尋全部資料（技能、符文、裝備…）" aria-label="搜尋全部資料" autocomplete="off"><div class="gs-drop" id="gsDrop" role="listbox" hidden></div></div>
     <label class="ver-sel" id="verBox" hidden><span>版本</span><select id="ver" aria-label="資料版本"></select></label>
+    <label class="ver-sel lang-sel" data-noi18n title="語言 / 언어 / Language"><span aria-hidden="true">🌐</span><select id="lang" aria-label="語言 / Language"><option value="zh">繁體中文</option><option value="ko">한국어</option><option value="en">English</option></select></label>
   </div>
 </header>
 <main>
@@ -365,17 +367,88 @@ a.wl.miss{color:var(--warn);border-bottom-style:dashed}
 <button class="to-top" id="toTop" type="button" title="回到最上面" aria-label="回到最上面" hidden>▲</button>
 <div class="itip sk" id="tip" hidden></div>
 <script>
+/* ---------- 語言切換（繁體中文／한국어／English）----------
+   原文一律是中文；選其他語言時讀 data/i18n/<語言>.js（ko、en；以中文原文為鍵），顯示時翻譯，資料檔與網址參數（分類、標籤）維持中文。
+   1. 資料文字：顯示前用 I18N.tr()（效果模板先翻譯再代入數值）
+   2. 介面文字：畫面產生後自動把中文文字節點、placeholder／title 換成韓文（找不到翻譯就維持中文）
+   語言記在網址 ?lang=ko／?lang=en 和瀏覽器（localStorage）；網址優先，方便分享。 */
+window.I18N = (() => {
+  const KEY = 'lootania-wiki-lang', LANGS = ['zh', 'ko', 'en'], HAN = /[㐀-鿿]/;
+  const SEP = /([\s、，,。:：;；\/|（）()【】「」\[\]<>›‹~～=…!！?？·+*%\-–—]+)/;
+  const stored = () => { try { const v = localStorage.getItem(KEY); return LANGS.includes(v) ? v : null; } catch (e) { return null; } };
+  // 預設：記住的選擇 → 瀏覽器語言是韓文就用韓文 → 中文（英文瀏覽器不自動切換，避免英文系統的中文玩家被改成英文）
+  const auto = () => stored() || (/^ko\b/i.test(navigator.language || '') ? 'ko' : 'zh');
+  let lang = 'zh';
+  try { const q = new URLSearchParams(location.search).get('lang'); lang = LANGS.includes(q) ? q : auto(); } catch (e) { lang = auto(); }
+  let D = new Map(), P = [], PU = null, ready = lang === 'zh';
+  const cache = new Map();
+  function load(pack) {
+    if (!pack) { lang = 'zh'; ready = true; return false; }
+    D = new Map([...Object.entries(pack.data || {}), ...Object.entries(pack.ui || {})]);
+    P = (pack.patterns || []).map(([re, to]) => { try { return [new RegExp(re), to]; } catch (e) { return null; } }).filter(Boolean);
+    const pu = pack.punct || {}; PU = Object.keys(pu).length ? [new RegExp('[' + Object.keys(pu).join('').replace(/[\]\\^-]/g, '\\$&') + ']', 'g'), pu] : null;   // 逐詞翻譯時的中文標點（、→ , ）
+    cache.clear(); ready = true; return true;
+  }
+  // 翻譯順序：完全相同 → 組合句 → 多行逐行 → 依標點切開逐詞（所有中文詞都有翻譯才換，避免半中半韓）
+  function core(t, depth) {
+    if (D.has(t)) return D.get(t);
+    if (depth < 3) for (const [re, to] of P) { const m = re.exec(t); if (m) return to.replace(/\$(T?)(\d)/g, (_, T, i) => { const g = (m[+i] || '').trim(); return T ? (HAN.test(g) ? (core(g, depth + 1) ?? g) : g) : g; }); }
+    // 【標籤】「名稱」：括號內整段有翻譯就先換掉（例如【法術（非保留）】）
+    if (/[【「]/.test(t)) { const t2 = t.replace(/([【「])([^】」]+)([】」])/g, (m, a, x, b) => D.has(x) ? a + D.get(x) + b : m);
+      if (t2 !== t) return HAN.test(t2) ? core(t2, depth + 1) : t2; }
+    if (t.includes('\n')) { const ls = t.split('\n').map(l => !HAN.test(l) ? l : core(l.trim(), depth + 1)); return ls.every(x => x != null) ? ls.join('\n') : null; }
+    const parts = t.split(SEP); let ok = true, any = false;
+    const res = parts.map((x, i) => { if (i % 2) return PU ? x.replace(PU[0], c => PU[1][c]) : x; if (!x || !HAN.test(x)) return x; const v = D.get(x); if (v == null) { ok = false; return x; } any = true; return v; });
+    return ok && any ? res.join('') : null;
+  }
+  function tr(s) {
+    if (lang === 'zh' || s == null) return s;
+    const str = String(s); if (!HAN.test(str)) return str;
+    if (cache.has(str)) return cache.get(str);
+    const lead = /^\s*/.exec(str)[0], trail = /\s*$/.exec(str)[0], c = str.trim();
+    const out = core(c, 0), r = out == null ? str : lead + out + trail;
+    if (cache.size > 20000) cache.clear(); cache.set(str, r); return r;
+  }
+  // 畫面上的中文（介面文字）：文字節點與 placeholder／title／aria-label／alt；編輯器、感謝名單名字不翻
+  const SKIP = 'script,style,textarea,.info-form,.ft-n,[data-noi18n]', ATTRS = ['placeholder', 'title', 'aria-label', 'alt'];
+  const txt = n => { const p = n.parentElement, v = n.nodeValue; if (!p || !HAN.test(v) || p.closest(SKIP)) return; const t = tr(v); if (t !== v) n.nodeValue = t; };
+  const att = e => { if (!e.getAttribute || e.closest(SKIP)) return; for (const a of ATTRS) { const v = e.getAttribute(a); if (v && HAN.test(v)) { const t = tr(v); if (t !== v) e.setAttribute(a, t); } } };
+  function walk(root) {
+    if (root.nodeType === 3) return txt(root); if (root.nodeType !== 1) return;
+    att(root); const w = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT); let n;
+    while ((n = w.nextNode())) n.nodeType === 3 ? txt(n) : att(n);
+  }
+  let started = false;
+  function start() {
+    if (lang === 'zh' || started) return; started = true;
+    document.documentElement.lang = lang; walk(document.documentElement);
+    new MutationObserver(ms => { for (const m of ms) {
+      if (m.type === 'childList') m.addedNodes.forEach(walk); else if (m.type === 'characterData') txt(m.target); else att(m.target); } })
+      .observe(document.documentElement, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ATTRS });
+  }
+  // 切換語言：記住選擇並重新載入（網址 ?lang= 只在和預設不同時保留）
+  function set(v) {
+    if (!LANGS.includes(v)) return;
+    try { localStorage.setItem(KEY, v); } catch (e) {}
+    const u = new URL(location.href); if (v === auto() && stored() === v) u.searchParams.delete('lang'); else u.searchParams.set('lang', v);
+    if (u.href === location.href) location.reload(); else location.replace(u.href);   // 網址沒變（只差語言記錄）也要重新載入
+  }
+  return { get lang() { return lang; }, get ready() { return ready; }, tr, load, start, set, walk };
+})();
+</script>
+<script>
 /* 技能顯示共用：技能列表與技能編輯器的預覽都用這支，確保兩邊顯示一致 */
 window.SkillCard = (() => {
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const T = s => window.I18N ? I18N.tr(s) : s;   // 資料文字翻譯（中文時原樣）
   const num = v => (typeof v === 'number' && isFinite(v)) ? String(+v.toFixed(2)) : (v == null || v === '' ? '?' : String(v));
   const kindLabel = (s, meta) => ((meta.skillKinds || []).find(k => k.id === s.kind) || {}).label || s.kind || '';
   const isRune = s => s.kind === 'rune';
   // 符文沒有等級：效果模板＋一組數值（values）
-  const runeEffect = s => s.effect ? String(s.effect).replace(/\{(\d+)\}/g, (_, i) => num((s.values || [])[+i])) : (s.desc || '');   // 舊資料只有說明時，用說明當效果
+  const runeEffect = s => s.effect ? String(T(s.effect)).replace(/\{(\d+)\}/g, (_, i) => num((s.values || [])[+i])) : T(s.desc || '');   // 舊資料只有說明時，用說明當效果
   // 效果模板：{0}、{1}… 依序換成該等級的數值；數值缺少時顯示 ?
   function effectAt(s, row) {
-    const t = s.effect || ''; if (!t) return '';
+    const t = T(s.effect || ''); if (!t) return '';
     const v = (row && row.v) || [];
     return t.replace(/\{(\d+)\}/g, (_, i) => num(v[+i]));
   }
@@ -389,7 +462,7 @@ window.SkillCard = (() => {
   }
   const tagsHTML = list => (list || []).map(t => `<b class="sk-tag">【${esc(t)}】</b>`).join('');
   const weaponsText = s => (s.weapons || []).join('/');
-  const descHTML = s => esc(s.desc || '').replace(/\n/g, '<br>');
+  const descHTML = s => esc(T(s.desc || '')).replace(/\n/g, '<br>');
   const levelsOf = s => (s.levels || []).slice().sort((a, b) => (a.lv || 0) - (b.lv || 0));
   // 圖示表（一張大圖切成格子，技能的 icon 填格子編號，0 起算、由左到右、由上到下）
   let SHEET = null;   // { src, cell, cols, rows }
@@ -420,7 +493,7 @@ window.SkillCard = (() => {
       <div class="sk-top"><div class="sk-ic">${ic}</div><div class="sk-info">${info.map(x => `<div>${x}</div>`).join('')}<div class="sk-desc">${isRune(s) ? (esc(runeEffect(s)) || '<span class="sk-mut">（尚無效果）</span>') : (descHTML(s) || '<span class="sk-mut">（尚無說明）</span>')}</div>
       ${(s.compatTags || []).length ? `<div>相容標籤：<span class="sk-compat">${(s.compatTags).map(t => `【${esc(t)}】`).join('')}</span></div>` : ''}</div></div>
       ${isRune(s) ? '' : lvBlock(cur, '現在等級') + lvBlock(nxt, '下一等級')}
-      ${s.source ? `<div class="sk-src"><span>獲得方式</span>${esc(s.source).replace(/\n/g, '<br>')}</div>` : ''}
+      ${s.source ? `<div class="sk-src"><span>獲得方式</span>${esc(T(s.source)).replace(/\n/g, '<br>')}</div>` : ''}
       ${(s.verify || []).length ? `<div class="sk-ver">待確認：${esc(s.verify.join('、'))}</div>` : ''}
     </div>`;
   }
@@ -432,7 +505,7 @@ window.SkillCard = (() => {
     return `<table class="sk-lvt"><thead><tr><th>等級</th><th>需求等級</th>${keys.map(k => `<th>${esc(meta.requirementLabels[k] || k)}</th>`).join('')}<th>效果</th></tr></thead><tbody>${
       L.map(r => `<tr><td>${num(r.lv)}</td><td>${r.req && r.req.level != null ? num(r.req.level) : '—'}</td>${keys.map(k => `<td>${r.req && r.req[k] ? num(r.req[k]) : '—'}</td>`).join('')}<td class="l">${n ? esc(effectAt(s, r)) : '—'}</td></tr>`).join('')}</tbody></table>`;
   }
-  function hl(s, terms) { let h = esc(s); for (const t of terms || []) { if (t) h = h.split(esc(t)).join(`<mark>${esc(t)}</mark>`); } return h; }
+  function hl(s, terms) { let h = esc(T(s)); for (const t of terms || []) { if (t) h = h.split(esc(t)).join(`<mark>${esc(t)}</mark>`); } return h; }
   // 列表的一列（poedb 式）
   function row(s, meta, terms) {
     // 摘要只列 Lv.1 與等級上限那一級（超過上限的加成等級在「全部等級」裡看）
@@ -464,7 +537,7 @@ window.SkillCard = (() => {
     const weapons = [...new Set((s.weapons || []).flatMap(w => wg[w] || (wt.has(w) ? [w] : [])))];
     return { skill, weapons };
   }
-  return { esc, num, runeEffect, effectAt, slots, reqText, tip, row, levelTable, talentConds, kindLabel, levelsOf, setSheet, sprite, iconHTML };
+  return { esc, T, num, runeEffect, effectAt, slots, reqText, tip, row, levelTable, talentConds, kindLabel, levelsOf, setSheet, sprite, iconHTML };
 })();
 
 </script>
@@ -507,7 +580,7 @@ function parseQuery(raw) {
 <script src="data/archive.js"></script>
 <script>
 (() => {
-  const $ = id => document.getElementById(id), SC = SkillCard, esc = SC.esc;
+  const $ = id => document.getElementById(id), SC = SkillCard, esc = SC.esc, T = SC.T, KO = () => I18N.lang !== 'zh';
 
   /* ---------- 資料來源 ---------- */
   // 資料夾：本機版＝和頁面同一層；GitHub Pages 版＝data/（建置時設定 WIKI_DATA_DIR）
@@ -548,10 +621,10 @@ function parseQuery(raw) {
     // 與遊戲顯示一致：固定值「+38%」、範圍「+(30~45)%」；負數不加 +
     const val = m => 'value' in m ? `${m.value >= 0 ? '+' : ''}${n(m.value)}${u(m)}` : `${m.min >= 0 ? '+' : ''}(${n(m.min)}~${n(m.max)})${u(m)}`;
     // 文字詞綴可帶數值：{"text":"敏捷每{v}點提供1%法術傷害","min":3,"max":5} → 敏捷每(3~5)點提供1%法術傷害
-    const txt = m => String(m.text || '').replace(/\{v\}/g, 'value' in m ? n(m.value) : ('min' in m ? `(${n(m.min)}~${n(m.max)})` : '{v}'));
-    const modText = m => !m ? '' : 'text' in m ? txt(m) : `${m.stat || '（未填屬性）'}：${val(m)}`;
+    const txt = m => String(T(m.text || '')).replace(/\{v\}/g, 'value' in m ? n(m.value) : ('min' in m ? `(${n(m.min)}~${n(m.max)})` : '{v}'));
+    const modText = m => !m ? '' : 'text' in m ? txt(m) : `${T(m.stat || '（未填屬性）')}${KO() ? ': ' : '：'}${val(m)}`;
     const typeOf = it => it.slot === '武器' ? (it.weaponType || '武器') : it.slot;
-    const hl = (t, terms) => { let h = esc(t); for (const x of terms || []) if (x) h = h.split(esc(x)).join(`<mark>${esc(x)}</mark>`); return h; };
+    const hl = (t, terms) => { let h = esc(T(t)); for (const x of terms || []) if (x) h = h.split(esc(x)).join(`<mark>${esc(x)}</mark>`); return h; };
     function reqLine(it, meta) { const r = it.req || {}, parts = [];
       for (const k of meta.requirements) { const v = r[k]; if (!v) continue; parts.push(k === 'level' ? `等級 <b>${esc(v)}</b>` : `<b>${esc(v)}</b> ${esc(meta.requirementLabels[k] || k)}`); }
       return parts.length ? `<span class="k">需要</span> ${parts.join(', ')}` : '<span class="k">無需求</span>'; }
@@ -570,7 +643,7 @@ function parseQuery(raw) {
     function tip(it, meta) { const md = mods(it, []);
       return `<div class="h">${esc(it.name)}<small>${esc(typeOf(it) || '')}</small></div>
         <div class="s">${props(it, meta, []).replace(/class="ln"/g, '')}</div><div class="s">${reqLine(it, meta)}</div>
-        ${md ? `<div class="s">${md.replace(/<div class="">/g, '<div class="m">')}</div>` : ''}${it.description ? `<div class="s"><div class="it-description"><i>${esc(it.description).replace(/\n/g, '<br>')}</i></div></div>` : ''}${it.source ? `<div class="s"><span class="k">獲得方式：</span>${esc(it.source)}</div>` : ''}`; }
+        ${md ? `<div class="s">${md.replace(/<div class="">/g, '<div class="m">')}</div>` : ''}${it.description ? `<div class="s"><div class="it-description"><i>${esc(T(it.description)).replace(/\n/g, '<br>')}</i></div></div>` : ''}${it.source ? `<div class="s"><span class="k">獲得方式：</span>${esc(T(it.source))}</div>` : ''}`; }
     const searchText = it => [it.name, it.id, it.slot, it.weaponType, it.description, it.note, it.source, ...(it.base || []).map(modText), ...(it.affix || it.hidden || []).map(modText)].join(' ');
     function sets(groups, matched, meta, terms) {
       const rank = new Map(matched.map((x, i) => [x.id, i]));
@@ -586,7 +659,7 @@ function parseQuery(raw) {
   })();
   /* ---------- 通貨顯示：種類、說明、獲得方式（圖示用 iconIndex 對應 currency-icons.png） ---------- */
   const CUR = (() => {
-    const hl = (t, terms) => { let h = esc(t); for (const x of terms || []) if (x) h = h.split(esc(x)).join(`<mark>${esc(x)}</mark>`); return h; };
+    const hl = (t, terms) => { let h = esc(T(t)); for (const x of terms || []) if (x) h = h.split(esc(x)).join(`<mark>${esc(x)}</mark>`); return h; };
     const br = h => h.replace(/\n/g, '<br>');
     const iconHTML = it => typeof it.iconIndex === 'number' && it.iconIndex >= 0 ? (SC.sprite(it.iconIndex) || `<span>${esc(it.type || '?')}</span>`) : `<span>${esc(it.type || '?')}</span>`;
     function row(it, meta, terms) {
@@ -597,8 +670,8 @@ function parseQuery(raw) {
         ${it.source ? `<div class="it-foot">獲得方式：${hl(it.source, terms)}</div>` : ''}</td></tr>`; }
     function tip(it) {
       return `<div class="h cur-h">${esc(it.name)}<small>${esc(it.type || '')}</small></div>
-        ${it.description ? `<div class="s"><div class="m">${br(esc(it.description))}</div></div>` : ''}
-        ${it.source || it.note ? `<div class="s">${it.source ? `<span class="k">獲得方式：</span>${esc(it.source)}` : ''}${it.note ? `${it.source ? '<br>' : ''}<span class="k">${esc(it.note)}</span>` : ''}</div>` : ''}`; }
+        ${it.description ? `<div class="s"><div class="m">${br(esc(T(it.description)))}</div></div>` : ''}
+        ${it.source || it.note ? `<div class="s">${it.source ? `<span class="k">獲得方式：</span>${esc(T(it.source))}` : ''}${it.note ? `${it.source ? '<br>' : ''}<span class="k">${esc(it.note)}</span>` : ''}</div>` : ''}`; }
     const searchText = it => [it.name, it.id, it.type, it.description, it.source, it.note].join(' ');
     return { row, tip, iconHTML, searchText };
   })();
@@ -693,18 +766,20 @@ function parseQuery(raw) {
   //      分類取「[[符文:勇士之村]]」寫法的前綴，或同一行前面最近的「主動技能：／被動技能：／符文：」；都沒有就用第一個有結果的分類
   //   3. 完全找不到 → 紅色虛線
   const WL = [];
-  function findByName(name) { for (const p of PAGES) { const s = p.items.find(x => x.name === name); if (s) return [p, s]; } return []; }
-  const pageByLabel = l => PAGES.find(p => p.label === l);
+  // 其他語言時也接受譯名（[[파이어 애로우]]、[[Fire Arrow]]）
+  const sameName = (x, name) => x.name === name || (KO() && T(x.name) === name);
+  function findByName(name) { for (const p of PAGES) { const s = p.items.find(x => sameName(x, name)); if (s) return [p, s]; } return []; }
+  const pageByLabel = l => PAGES.find(p => p.label === l || (KO() && T(p.label) === l));
   function ctxPage(before) {
     before = before.replace(/\[\[[^\]]*\]\]/g, '');   // 其他連結裡的「符文:」不算
     let best = null, at = -1;
-    for (const p of PAGES) for (const sep of ['：', ':']) { const i = before.lastIndexOf(p.label + sep); if (i > at) { at = i; best = p; } }
+    for (const p of PAGES) for (const lb of KO() ? [p.label, T(p.label)] : [p.label]) for (const sep of ['：', ':']) { const i = before.lastIndexOf(lb + sep); if (i > at) { at = i; best = p; } }
     return best;
   }
   function wikiLink(raw, label, before) {
     let name = raw, pg = null; const m = /^(.+?)[:：](.+)$/.exec(raw);
     if (m && pageByLabel(m[1].trim())) { pg = pageByLabel(m[1].trim()); name = m[2].trim(); if (label === raw) label = name; }
-    const [p, s] = pg ? [pg, pg.items.find(x => x.name === name)] : findByName(name);
+    const [p, s] = pg ? [pg, pg.items.find(x => sameName(x, name))] : findByName(name);
     let h;
     if (s) h = `<a class="wl" href="#/${p.id}/${esc(s.id)}" data-tip="${esc(s.id)}">${esc(label)}</a>`;
     else {
@@ -715,10 +790,10 @@ function parseQuery(raw) {
     }
     return `\u0001${WL.push(h) - 1}\u0001`;
   }
-  const MD_FOLD = /^\s*(?:公告|活動|\p{Extended_Pictographic})/u;   // 收合區塊的標題
+  const MD_FOLD = /^\s*(?:公告|活動|공지|이벤트|Notice|Event|\p{Extended_Pictographic})/u;   // 收合區塊的標題
   /* ---------- 活動期間：收合區塊裡寫「期間：2026/10/10 18:00 ～ 2026/10/28 18:00」（台灣時間）
      只在期間內顯示在首頁；還沒開始的不顯示，結束的移到「過去的公告與活動」（#/archive） ---------- */
-  const EV_RE = /^\s*(?:活動)?期間\s*[:：]\s*(.+?)\s*[～~至到]\s*(.+?)\s*$/;
+  const EV_RE = /^\s*(?:活動|이벤트\s*|Event\s+)?(?:期間|기간|[Pp]eriod)\s*[:：]\s*(.+?)\s*[～~至到]\s*(.+?)\s*$/;
   function evTime(t, end) { const m = /^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})(?:[ T](\d{1,2}):(\d{2}))?$/.exec(String(t || '').trim()); if (!m) return null;
     const hm = m[4] != null ? `${m[4].padStart(2, '0')}:${m[5]}:00` : (end ? '23:59:59' : '00:00:00');
     const d = new Date(`${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}T${hm}+08:00`); return isNaN(d) ? null : d; }
@@ -730,12 +805,15 @@ function parseQuery(raw) {
     return out.filter(x => x.title || x.text.trim()); }
   const evState = (x, now = new Date()) => !x.ev ? 'always' : (x.ev.start && now < x.ev.start) ? 'soon' : (x.ev.end && now > x.ev.end) ? 'ended' : 'on';
   // 首頁顯示用：拿掉還沒開始、已結束的活動（home.js 原文不變，編輯時仍看得到）
+  // 其他語言：home.js／archive.js 有 bodyKo／bodyEn（seasonKo／seasonEn）就用，沒有就用中文
+  const LSFX = () => ({ ko: 'Ko', en: 'En' })[I18N.lang] || '', inLang = (o, k) => (o && LSFX() && o[k + LSFX()]) || (o && o[k]) || '';
+  const homeBody = () => inLang(home, 'body'), homeSeason = () => inLang(home, 'season');
   const homeShown = md => mdSections(md).filter(x => { const st = evState(x); return st === 'always' || st === 'on'; }).map(x => x.text).join('\n');
   // 過去的公告與活動：archive.js 的內容 ＋ home.js 裡已結束的活動
   function archiveSections() {
     const A = window.LOOTANIA_ARCHIVE, list = [];
-    for (const x of mdSections((A && A.body) || '')) if (x.title) list.push(x);
-    for (const x of mdSections(home.body)) if (evState(x) === 'ended' && !list.some(y => y.title === x.title)) list.push(x);
+    for (const x of mdSections(inLang(A, 'body'))) if (x.title) list.push(x);
+    for (const x of mdSections(homeBody())) if (evState(x) === 'ended' && !list.some(y => y.title === x.title)) list.push(x);
     return list.sort((a, b) => ((b.ev && b.ev.end) || 0) - ((a.ev && a.ev.end) || 0)); }
   const MD_LI = /^\s*(?:[-*]\s+|・\s*)/;   // 清單：「- 」「* 」或「・」（・後面可不空格）
   // 某一頁的分類（給首頁「{{分類:通貨}}」用）：通貨＝種類、傳奇裝備＝部位、主動技能＝傷害／位移…
@@ -759,7 +837,7 @@ function parseQuery(raw) {
     // {{分類:通貨}} → 依目前資料自動列出該頁所有分類的連結（例：結晶、卷軸、箴言…），之後新增種類也會自動出現
     src = String(src).replace(/\{\{\s*分類\s*[:：]\s*(.+?)\s*\}\}/g, (all, l) => { const p = pageByLabel(l); if (!p) return all;
       if (!pageOf(p.id)) return '';
-      return catsFor(p).map(c => `[${c.label}](#/${p.id}?cat=${encodeURIComponent(c.id)})`).join('、'); });
+      return catsFor(p).map(c => `[${c.label}](#/${p.id}?cat=${encodeURIComponent(c.id)})`).join(KO() ? ', ' : '、'); });
     // [[技能名稱]]＝站內連結（技能→詳細頁、符文→列表）；[顯示文字](網址)＝命名連結；單獨的網址也會自動變成連結
     const bold = h => h.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
     // 連到本站（#/… 或 https://…/lootaniawiki/#/…）：同一頁內切換，不開新分頁；本機版也能用
@@ -791,11 +869,11 @@ function parseQuery(raw) {
   function infoView() {
     const st = seasonState(), hasT = /T/.test(home.start + home.end);
     const range = home.start || home.end ? `${fmtDate(home.start) || '?'} ～ ${fmtDate(home.end) || '未定'}${hasT ? '（台灣時間）' : ''}` : '';
-    const empty = !home.season && !home.body.trim();
-    return `<section class="panel info"><h2>${esc(home.season || '賽季資訊')}${st ? `<span class="ss ${st.cls}">${st.txt}</span>` : ''}${CAN_EDIT ? '<button class="info-edit" id="infoEdit">編輯</button>' : ''}</h2>
+    const empty = !homeSeason() && !homeBody().trim();
+    return `<section class="panel info"><h2>${esc(homeSeason() || '賽季資訊')}${st ? `<span class="ss ${st.cls}">${st.txt}</span>` : ''}${CAN_EDIT ? '<button class="info-edit" id="infoEdit">編輯</button>' : ''}</h2>
       <div class="body">${range ? `<div class="info-range">賽季期間：${range}</div>` : ''}
       ${homeNotice ? `<p class="info-note">${esc(homeNotice)}</p>` : ''}
-      ${empty ? `<p class="sk-mut">${CAN_EDIT ? `尚未填寫賽季資訊。按右上角「編輯」填入賽季名稱、期間與內容，儲存後會寫入 <b>home.js</b>（和${DATA_DIR ? ' skills.js 同一個資料夾' : '這個頁面放在同一個資料夾'}）。` : '目前沒有賽季資訊。'}</p>` : `<div class="info-md">${mdLite(homeShown(home.body))}</div>`}
+      ${empty ? `<p class="sk-mut">${CAN_EDIT ? `尚未填寫賽季資訊。按右上角「編輯」填入賽季名稱、期間與內容，儲存後會寫入 <b>home.js</b>（和${DATA_DIR ? ' skills.js 同一個資料夾' : '這個頁面放在同一個資料夾'}）。` : '目前沒有賽季資訊。'}</p>` : `<div class="info-md">${mdLite(homeShown(homeBody()))}</div>`}
       ${(() => { const n = archiveSections().length; return n ? `<a class="arc-link" href="#/archive">📁 過去的公告與活動（${n}）›</a>` : ''; })()}
       ${home.updatedAt ? `<div class="info-upd">資訊更新：${fmtDate(home.updatedAt)}</div>` : ''}</div></section>`;
   }
@@ -945,6 +1023,7 @@ function parseQuery(raw) {
     if (e.target.id === 'hCancel') { if (homeDirty() && !cancelArmed) { cancelArmed = true; $('hMsg').textContent = '有尚未儲存的修改，再按一次「取消」放棄'; return; } homeEditing = false; renderHome(); return; }
     if (e.target.id !== 'hSave') return;
     const nx = { season: $('hSeason').value.trim(), start: joinDT($('hStart').value, $('hStartT').value), end: joinDT($('hEnd').value, $('hEndT').value), body: edBody(), updatedAt: new Date().toLocaleDateString('sv') };
+    for (const k of ['seasonKo', 'bodyKo', 'seasonEn', 'bodyEn']) if (home[k]) nx[k] = home[k];   // 韓文、英文內容（手動維護）存檔時保留
     if ((!$('hStart').value && $('hStartT').value) || (!$('hEnd').value && $('hEndT').value)) { $('hMsg').textContent = '有填時間時，請一併選擇日期'; return; }
     if (nx.start && nx.end && parseTW(nx.end, true) < parseTW(nx.start)) { $('hMsg').textContent = '結束時間早於開始時間'; return; }
     const txt = '/* 由 LOOTANIA Wiki 首頁「編輯」自動產生（賽季資訊欄），請勿手動修改格式 */\nwindow.LOOTANIA_HOME = ' + JSON.stringify(nx, null, 2) + ';\n';
@@ -991,13 +1070,16 @@ function parseQuery(raw) {
     const w = $('weapon').value, ws = [...$('weapon').options].map(o => o.value).filter(Boolean), all = page.items.filter(x => x.slot === '武器');
     sub.innerHTML = [['', '全部武器', all.length], ...ws.map(v => [v, v, all.filter(x => x.weaponType === v).length])]
       .map(([v, l, n]) => `<a href="#" data-w="${esc(v)}" class="${w === v ? 'on' : ''}">${esc(l)}<span class="n">/${n}</span></a>`).join(''); }
-  const searchText = s => /^eq-/.test(s.id) ? EQ.searchText(s) : /^cur-/.test(s.id) ? CUR.searchText(s) : [s.name, s.id, s.group, s.desc, s.source, s.effect && SC.levelsOf(s).map(r => SC.effectAt(s, r)).join(' '), SC.runeEffect(s), ...(s.tags || []), ...(s.compatTags || []), ...(s.weapons || []), s.note].join(' ');
+  const searchBase = s => /^eq-/.test(s.id) ? EQ.searchText(s) : /^cur-/.test(s.id) ? CUR.searchText(s) : [s.name, s.id, s.group, s.desc, s.source, s.effect && SC.levelsOf(s).map(r => SC.effectAt(s, r)).join(' '), SC.runeEffect(s), ...(s.tags || []), ...(s.compatTags || []), ...(s.weapons || []), s.note].join(' ');
+  // 其他語言：中文原文＋譯文都可搜尋（效果已是譯文）
+  const koSearch = s => [s.name, s.group, s.desc, s.source, s.slot, s.weaponType, s.type, s.description, s.note, ...(s.tags || []), ...(s.compatTags || []), ...(s.weapons || []), ...(s.base || []).map(m => m.text || m.stat), ...(s.affix || s.hidden || []).map(m => m.text || m.stat)].filter(Boolean).map(T).join(' ');
+  const searchText = s => KO() ? searchBase(s) + ' ' + koSearch(s) : searchBase(s);
   const firstLv = s => { if (s.req && !s.levels) return s.req.level || 0; const r = SC.levelsOf(s)[0]; return r && r.req && r.req.level != null ? r.req.level : 9999; };
   const okWeapon = (s, w) => !w || (src && src.card ? s.weaponType === w : !(s.weapons || []).length || s.weapons.some(x => x === w || ((meta.weaponGroups || {})[x] || []).includes(w)));
 
   // 價格：取獲得方式裡的數字（例如「商店購買(160000)」）；沒有價格的排在最後；同價依需求等級、編號
   const byId = (a, b) => a.id.localeCompare(b.id);
-  const byName = (a, b) => a.name.localeCompare(b.name, 'zh-Hant') || byId(a, b);
+  const byName = (a, b) => (KO() ? String(T(a.name)).localeCompare(T(b.name), I18N.lang) : a.name.localeCompare(b.name, 'zh-Hant')) || byId(a, b);
   const byLevel = dir => (a, b) => dir * (firstLv(a) - firstLv(b)) || byName(a, b);
   const defaultSort = () => page.src === 'equipment' && curCat === '組合套裝' ? 'name' : page.defSort;
   const pr = s => { const m = String(s.source || '').replace(/[,，]/g, '').match(/\d+/g); return m ? Math.max(...m.map(Number)) : null; };
@@ -1011,7 +1093,7 @@ function parseQuery(raw) {
     const hasW = isEq ? eqW.length > 0 : p.items.some(s => (s.weapons || []).length);
     $('weapon').hidden = !hasW;
     const wOrder = (meta.weaponTypes || []).map(w => w.id);
-    $('weapon').innerHTML = '<option value="">全部武器</option>' + (isEq ? eqW.sort((a, b) => (wOrder.indexOf(a) + 1 || 99) - (wOrder.indexOf(b) + 1 || 99)) : wOrder).map(w => `<option>${esc(w)}</option>`).join('');
+    $('weapon').innerHTML = '<option value="">全部武器</option>' + (isEq ? eqW.sort((a, b) => (wOrder.indexOf(a) + 1 || 99) - (wOrder.indexOf(b) + 1 || 99)) : wOrder).map(w => `<option value="${esc(w)}">${esc(w)}</option>`).join('');
     allTags = [...new Set([...(meta.skillTags || []).map(t => t.id), ...p.items.flatMap(s => [...(s.tags || []), ...(s.compatTags || [])])])]
       .filter(t => p.items.some(s => (s.tags || []).includes(t) || (s.compatTags || []).includes(t)));
     selTags = new Set((params.get('tags') || '').split(',').filter(t => allTags.includes(t)));
@@ -1247,11 +1329,11 @@ function parseQuery(raw) {
     if (!raw) { drop.hidden = true; drop.innerHTML = ''; return; }
     const Q = parseQuery(raw), low = raw.toLowerCase(), groups = [];
     for (const p of PAGES) { const s0 = SRC[p.src]; if (!p.items.length) continue;
-      const hit = p.items.filter(x => Q.test(searchText(x))).map(x => { const n = String(x.name || '').toLowerCase(); return [x, n.startsWith(low) ? 0 : n.includes(low) ? 1 : 2]; })
-        .sort((a, b) => a[1] - b[1] || String(a[0].name).localeCompare(String(b[0].name), 'zh-Hant')).map(a => a[0]);
+      const hit = p.items.filter(x => Q.test(searchText(x))).map(x => { const n = String(T(x.name) || '').toLowerCase(); return [x, n.startsWith(low) ? 0 : n.includes(low) ? 1 : 2]; })
+        .sort((a, b) => a[1] - b[1] || String(T(a[0].name)).localeCompare(String(T(b[0].name)), KO() ? I18N.lang : 'zh-Hant')).map(a => a[0]);
       if (hit.length) groups.push([p, s0, hit]); }
     if (!groups.length) { drop.innerHTML = `<div class="gs-empty">找不到「${esc(raw)}」</div>`; drop.hidden = false; return; }
-    const MAX = 6, hl = t => { let h = esc(t); for (const x of Q.terms || []) if (x) h = h.split(esc(x)).join(`<mark>${esc(x)}</mark>`); return h; };
+    const MAX = 6, hl = t => { let h = esc(T(t)); for (const x of Q.terms || []) if (x) h = h.split(esc(x)).join(`<mark>${esc(x)}</mark>`); return h; };
     drop.innerHTML = groups.map(([p, s0, hit]) => { useSheet(s0); const card = cardOf(s0);
       return `<div class="gs-g"><div class="gs-h">${esc(p.label)}<span>${hit.length} 筆</span></div>${hit.slice(0, MAX).map(x => `<a class="gs-it" href="#/${p.id}/${esc(x.id)}" data-tip="${esc(x.id)}"><span class="icon">${card.iconHTML(x, s0.meta)}</span><b>${hl(x.name || x.id)}</b><small>${esc(x.id)}</small></a>`).join('')}
         ${hit.length > MAX ? `<a class="gs-more" href="#/${p.id}?q=${encodeURIComponent(raw)}">在${esc(p.label)}查看全部 ${hit.length} 筆 ›</a>` : ''}</div>`; }).join('');
@@ -1281,7 +1363,16 @@ function parseQuery(raw) {
       <div class="ft-bot">LOOTANIA Wiki${ver ? ' · ' + ver : ''}</div>`;
     el.hidden = false;
   }
-  (function boot() {
+  $('lang').value = I18N.lang; $('lang').addEventListener('change', e => I18N.set(e.target.value));
+  (async function boot() {
+    // 語言檔：先讀 data/i18n/<語言>.js（讀不到就維持中文，並在選單標示）
+    if (I18N.lang !== 'zh') {
+      const I18N_FAIL = I18N.lang + '.js 讀取失敗 / translation file failed to load';
+      const pk = () => (window.LOOTANIA_I18N || {})[I18N.lang];
+      if (!pk()) await loadScript(DATA_DIR + 'i18n/' + I18N.lang + '.js');
+      if (!I18N.load(pk())) { $('lang').value = 'zh'; $('lang').title = I18N_FAIL; console.warn('[i18n] 找不到語言檔', DATA_DIR + 'i18n/'); }
+      I18N.start();
+    }
     if (!VERS) { loadVersion({ version: '', dir: '' }); return; }   // 沒有 versions.js：直接讀資料夾裡的 skills.js（舊結構）
     let want = null; try { want = new URLSearchParams(location.search).get('v'); } catch (e) {}
     loadVersion((want && verOf(want)) || latestV);

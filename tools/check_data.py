@@ -132,8 +132,8 @@ if h is not None:
         if en < st: errs.append('home.js: 結束時間早於開始時間')
 # ---------- 活動期間與過去的活動（archive.js） ----------
 TW = timezone(timedelta(hours=8))
-EV_RE = re.compile(r'^\s*(?:活動)?期間\s*[:：]\s*(.+?)\s*[～~至到]\s*(.+?)\s*$')
-FOLD_RE = re.compile(r'^\s*(?:公告|活動|[\U0001F000-\U0001FAFF☀-➿])')
+EV_RE = re.compile(r'^\s*(?:活動|이벤트\s*|Event\s+)?(?:期間|기간|[Pp]eriod)\s*[:：]\s*(.+?)\s*[～~至到]\s*(.+?)\s*$')
+FOLD_RE = re.compile(r'^\s*(?:公告|活動|공지|이벤트|Notice|Event|[\U0001F000-\U0001FAFF☀-➿])')
 def ev_time(t, end):
     m = re.fullmatch(r'(\d{4})[/-](\d{1,2})[/-](\d{1,2})(?:[ T](\d{1,2}):(\d{2}))?', t.strip())
     if not m: return None
@@ -162,22 +162,26 @@ def check_periods(fname, md):
     return ended
 ar_path = os.path.join(D, 'archive.js')
 ar = load_js(ar_path, 'LOOTANIA_ARCHIVE', required=False) if os.path.exists(ar_path) else {'body': ''}
+BODIES = ('body', 'bodyKo', 'bodyEn')   # 中文、韓文、英文內容各自依期間整理
 if ar is not None:
-    if not isinstance(ar.get('body', ''), str): errs.append('archive.js: body 應為文字')
-    else: check_periods('archive.js', ar.get('body', ''))
-if h is not None and isinstance(h.get('body'), str):
-    ended = check_periods('home.js', h['body'])
-    if ended and ARCHIVE and ar is not None and not errs:
-        keep = [x for x in sections(h['body']) if x not in ended]
-        h['body'] = '\n'.join('\n'.join(x['lines']) for x in keep).strip('\n')
-        ar['body'] = '\n\n'.join(['\n'.join(x['lines']).strip('\n') for x in ended] + ([ar['body'].strip('\n')] if ar.get('body') else []))
+    for k in BODIES:
+        if not isinstance(ar.get(k, ''), str): errs.append(f'archive.js: {k} 應為文字')
+        else: check_periods(f'archive.js({k})', ar.get(k, ''))
+if h is not None:
+    ended_all = {k: check_periods(f'home.js({k})', h[k]) for k in BODIES if isinstance(h.get(k), str)}
+    ended_all = {k: v for k, v in ended_all.items() if v}
+    if ended_all and ARCHIVE and ar is not None and not errs:
+        for k, ended in ended_all.items():
+            keep = [x for x in sections(h[k]) if x not in ended]
+            h[k] = '\n'.join('\n'.join(x['lines']) for x in keep).strip('\n')
+            ar[k] = '\n\n'.join(['\n'.join(x['lines']).strip('\n') for x in ended] + ([ar[k].strip('\n')] if ar.get(k) else []))
+            print(f'已把 {k} 的 ' + '、'.join(f'「{x["title"]}」' for x in ended) + ' 從 home.js 移到 archive.js')
         t = open(os.path.join(D, 'home.js'), encoding='utf-8').read()
         head = t[:re.search(r'window\.LOOTANIA_HOME\s*=\s*', t).start()]
         open(os.path.join(D, 'home.js'), 'w', encoding='utf-8').write(head + 'window.LOOTANIA_HOME = ' + json.dumps(h, ensure_ascii=False, indent=2) + ';\n')
         open(ar_path, 'w', encoding='utf-8').write('/* 過去的公告與活動（已結束的活動會移到這裡，首頁不顯示；網站「過去的公告與活動」頁面會列出） */\nwindow.LOOTANIA_ARCHIVE = ' + json.dumps(ar, ensure_ascii=False, indent=2) + ';\n')
-        print('已把 ' + '、'.join(f'「{x["title"]}」' for x in ended) + ' 從 home.js 移到 archive.js')
-    elif ended:
-        warns.append('home.js: 已結束（首頁已自動隱藏）：' + '、'.join(f'「{x["title"]}」' for x in ended) + '。要整理檔案可執行 python tools/check_data.py --archive')
+    elif ended_all:
+        warns.append('home.js: 已結束（首頁已自動隱藏）：' + '、'.join(f'「{x["title"]}」' for v in ended_all.values() for x in v) + '。要整理檔案可執行 python tools/check_data.py --archive')
 cr = load_js(os.path.join(D, 'credits.js'), 'LOOTANIA_CREDITS', required=False)   # 頁尾感謝名單（選用）
 if cr is not None:
     gs = cr.get('groups')
@@ -186,7 +190,50 @@ if cr is not None:
         if not isinstance(g, dict) or not isinstance(g.get('names', []), list): errs.append(f'credits.js: 分組格式不對（{g}）'); continue
         for n in g.get('names', []):
             if not (isinstance(n, str) or (isinstance(n, dict) and n.get('name'))): errs.append(f'credits.js: 「{g.get("label")}」裡有無法辨識的名字（{n}）')
+# ---------- 翻譯（data/i18n/<語言>.js）：數值位置要和原文一致；列出尚未翻譯的資料文字（只警告） ----------
+HAN = re.compile('[㐀-鿿]')
+def i18n_strings(x, out):
+    if isinstance(x, dict):
+        for k, v in x.items():
+            if k in ('icon', 'file', 'image'): continue
+            if isinstance(k, str) and HAN.search(k): out.add(k.strip())
+            i18n_strings(v, out)
+    elif isinstance(x, list):
+        for v in x: i18n_strings(v, out)
+    elif isinstance(x, str) and HAN.search(x): out.add(x.strip())
+I18N_DIR = os.path.join(D, 'i18n')
+for fn in sorted(os.listdir(I18N_DIR)) if os.path.isdir(I18N_DIR) else []:
+    if not fn.endswith('.js'): continue
+    code = fn[:-3]; t = open(os.path.join(I18N_DIR, fn), encoding='utf-8').read()
+    m = re.search(r'LOOTANIA_I18N\.' + re.escape(code) + r'\s*=\s*', t)
+    if not m: errs.append(f'i18n/{fn}: 找不到 window.LOOTANIA_I18N.{code} ='); continue
+    try: pk = json.loads(relax(t[m.end():].rstrip().rstrip(';')))
+    except Exception as e: errs.append(f'i18n/{fn}: 格式不對（{e}）'); continue
+    tbl = {**(pk.get('data') or {}), **(pk.get('ui') or {})}
+    for zh, tr_ in tbl.items():
+        if not isinstance(tr_, str): errs.append(f'i18n/{fn}:「{zh[:30]}」翻譯應為文字'); continue
+        a, b = sorted(re.findall(r'\{\w+\}', zh)), sorted(re.findall(r'\{\w+\}', tr_))
+        if a != b: errs.append(f'i18n/{fn}:「{zh[:40]}」數值位置 {a} 與翻譯 {b} 不同')
+    for pat in pk.get('patterns') or []:
+        try: re.compile(pat[0].replace('(?<', '(?P<'))
+        except Exception as e: errs.append(f'i18n/{fn}: 組合句 {pat[0]} 無法使用（{e}）')
+    if V is not None:
+        for v in V.get('versions') or []:
+            vd = os.path.join(D, v.get('dir') or '')
+            if not v.get('dir') or not os.path.isdir(vd): continue
+            S = set()
+            for f in sorted(os.listdir(vd)):   # .json 和網站實際讀取的 .js（例如 curse-wheel.js 是手動維護）都檢查
+                try:
+                    if f.endswith('.json'): i18n_strings(json.load(open(os.path.join(vd, f), encoding='utf-8')), S)
+                    elif f.endswith('.js'):
+                        jt = open(os.path.join(vd, f), encoding='utf-8').read(); jm = re.search(r'window\.\w+\s*=\s*', jt)
+                        if jm: i18n_strings(json.loads(relax(jt[jm.end():].rstrip().rstrip(';'))), S)
+                except Exception: pass
+            miss = sorted(x for x in S if x not in tbl and not all((not HAN.search(l)) or l.strip() in tbl for l in x.split('\n')))
+            if miss: warns.append(f'i18n/{fn}: {v["version"]} 有 {len(miss)} 筆資料還沒翻譯（會顯示中文），例如：' + '、'.join(f'「{x[:20]}」' for x in miss[:5]))
+            else: print(f'  i18n/{fn}: {v["version"]} 資料已全部翻譯')
 gh = os.environ.get('GITHUB_ACTIONS') == 'true'
+
 for w in warns: print(f'::warning::{w}' if gh else f'警告：{w}')
 for e in errs: print(f'::error::{e}' if gh else f'錯誤：{e}')
 if errs: sys.exit(1)
