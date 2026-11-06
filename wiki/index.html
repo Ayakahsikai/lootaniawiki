@@ -374,7 +374,7 @@ a.wl.miss{color:var(--warn);border-bottom-style:dashed}
    語言記在網址 ?lang=ko／?lang=en 和瀏覽器（localStorage）；網址優先，方便分享。 */
 window.I18N = (() => {
   const KEY = 'lootania-wiki-lang', LANGS = ['zh', 'ko', 'en'], HAN = /[㐀-鿿]/;
-  const SEP = /([\s、，,。:：;；\/|（）()【】「」\[\]<>›‹~～=…!！?？·+*%\-–—]+)/;
+  const SEP = /([\s、，,。:：;；\/|（）()【】「」\[\]<>›‹~～=…!！?？·・+*%\-–—]+)/;
   const stored = () => { try { const v = localStorage.getItem(KEY); return LANGS.includes(v) ? v : null; } catch (e) { return null; } };
   // 預設：記住的選擇 → 瀏覽器語言是韓文就用韓文 → 中文（英文瀏覽器不自動切換，避免英文系統的中文玩家被改成英文）
   const auto = () => stored() || (/^ko\b/i.test(navigator.language || '') ? 'ko' : 'zh');
@@ -412,7 +412,8 @@ window.I18N = (() => {
   // 畫面上的中文（介面文字）：文字節點與 placeholder／title／aria-label／alt；編輯器、感謝名單名字不翻
   const SKIP = 'script,style,textarea,.info-form,.ft-n,[data-noi18n]', ATTRS = ['placeholder', 'title', 'aria-label', 'alt'];
   const txt = n => { const p = n.parentElement, v = n.nodeValue; if (!p || !HAN.test(v) || p.closest(SKIP)) return; const t = tr(v); if (t !== v) n.nodeValue = t; };
-  const att = e => { if (!e.getAttribute || e.closest(SKIP)) return; for (const a of ATTRS) { const v = e.getAttribute(a); if (v && HAN.test(v)) { const t = tr(v); if (t !== v) e.setAttribute(a, t); } } };
+  const SKIP_ATT = SKIP.replace('textarea,', '');   // textarea 的內容不翻，但 placeholder 要翻
+  const att = e => { if (!e.getAttribute || e.closest(SKIP_ATT)) return; for (const a of ATTRS) { const v = e.getAttribute(a); if (v && HAN.test(v)) { const t = tr(v); if (t !== v) e.setAttribute(a, t); } } };
   function walk(root) {
     if (root.nodeType === 3) return txt(root); if (root.nodeType !== 1) return;
     att(root); const w = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT); let n;
