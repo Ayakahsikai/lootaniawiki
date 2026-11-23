@@ -688,7 +688,7 @@ function parseQuery(raw) {
     const n = Math.max(0, ...s.items.map(x => typeof x.iconIndex === 'number' ? x.iconIndex + 1 : 0)); if (!n) return;
     const img = new Image(); img.onload = () => { const W = img.naturalWidth, H = img.naturalHeight;
       for (let cols = 1; cols <= n; cols++) { const cell = W / cols, rows = H / cell, rr = Math.round(rows);
-        if (Math.abs(rows - rr) < 0.02 && rr >= 1 && cols * rr >= n && rr === Math.ceil(n / cols)) { s.sheetCfg = { src: file, cols, rows: rr, count: n }; if (src === s) render(); return; } } };
+        if (Math.abs(rows - rr) < 0.02 && rr >= 1 && cols * rr >= n && rr === Math.ceil(n / cols)) { s.sheetCfg = { src: file, cols, rows: rr, count: n }; if (src === s) render(); if (!$('gsDrop').hidden) gsRender(); return; } } };
     img.src = file; }
   function initData() {
     for (const s of Object.values(SRC)) {
@@ -696,11 +696,12 @@ function parseQuery(raw) {
       s.items = s.ok ? d[s.list] : []; s.meta = s.metaDef ? { ...s.metaDef, ...((s.ok && d.meta) || {}) } : mergeMeta(s.ok ? d.meta : null);
       const ic = s.ok && d.iconSheet;
       s.sheetCfg = ic ? { src: /^data:/.test(ic.file || '') ? ic.file : VDIR + (ic.file || s.sheet), cell: ic.cell, cols: ic.cols, rows: ic.rows, count: ic.count } : null;
-      if (s.ok && s.card && !ic) sheetGuess(s, (s.data.iconSheetData) || VDIR + s.sheet);
     }
     PAGES.forEach(p => { p.items = SRC[p.src].items.filter(p.pick); });
   }
-  const useSheet = src => SC.setSheet(src.sheetCfg);   // 技能、符文各有一張圖示表，產生畫面前先切換
+  // 技能、符文各有一張圖示表，產生畫面前先切換。
+  // 裝備、通貨的圖示表沒寫 iconSheet 時，第一次用到才讀圖片推算格子（不在開站時就下載約 1 MB 的圖片）
+  const useSheet = src => { if (src && src.ok && src.card && !src.sheetCfg && !src.sheetTried) { src.sheetTried = true; sheetGuess(src, src.data.iconSheetData || VDIR + src.sheet); } SC.setSheet(src.sheetCfg); };
 
   /* ---------- 頁面與選單（之後新增「打造」「成就」等，在這裡加一組即可） ---------- */
   const PAGES = [
@@ -1294,6 +1295,7 @@ function parseQuery(raw) {
   const verOf = name => VERS && VERS.versions.find(v => v.version === name || v.dir === name || (v.aliases || []).includes(name));
   const latestV = VERS ? (verOf(VERS.latest) || VERS.versions[0]) : null;
   let curV = null;
+  let bootWait = null;   // 開站時的語言檔下載，和資料檔同時進行
   const loadScript = src => new Promise(res => { const el = document.createElement('script'); el.src = src;
     el.onload = () => { el.remove(); res(true); }; el.onerror = () => { el.remove(); res(false); }; document.head.appendChild(el); });
   function renderVer() {
@@ -1307,13 +1309,13 @@ function parseQuery(raw) {
     curV = v; VDIR = DATA_DIR + (v.dir ? String(v.dir).replace(/\/?$/, '/') : '');
     const inl = window.WIKI_INLINE && window.WIKI_INLINE[v.dir];   // 預覽版：資料直接內嵌
     // 額外頁面依版本資料檔顯示；切版前清空，避免沿用上一版的資料。
-    for (const p of EXTRA_PAGES) {
-      p.data = null; window[p.var] = undefined;
-      if (inl) window[p.var] = inl[p.id];
-      else await loadScript(VDIR + p.js);
-      p.data = window[p.var] || null;
-    }
-    for (const [k, s] of Object.entries(SRC)) { window[s.var] = undefined; if (inl) window[s.var] = inl[k] || inl[s.list]; else await loadScript(VDIR + s.js); }
+    // 各資料檔同時下載（原本逐一等待，每個檔都要多等一次連線延遲）；語言檔（bootWait）也一起等
+    const jobs = [bootWait];
+    for (const p of EXTRA_PAGES) { p.data = null; window[p.var] = undefined; if (inl) window[p.var] = inl[p.id]; else jobs.push(loadScript(VDIR + p.js)); }
+    for (const [k, s] of Object.entries(SRC)) { window[s.var] = undefined; if (inl) window[s.var] = inl[k] || inl[s.list]; else jobs.push(loadScript(VDIR + s.js)); }
+    await Promise.all(jobs); bootWait = null;
+    if (curV !== v) return;   // 下載期間又切換了版本：交給較新的那次
+    for (const p of EXTRA_PAGES) p.data = window[p.var] || null;
     initData(); for (const k of Object.keys(listHash)) delete listHash[k];
     renderVer(); renderFoot(); route();
   }
@@ -1367,13 +1369,13 @@ function parseQuery(raw) {
   $('lang').value = I18N.lang; $('lang').addEventListener('change', e => I18N.set(e.target.value));
   (async function boot() {
     // 語言檔：先讀 data/i18n/<語言>.js（讀不到就維持中文，並在選單標示）
-    if (I18N.lang !== 'zh') {
+    if (I18N.lang !== 'zh') bootWait = (async () => {
       const I18N_FAIL = I18N.lang + '.js 讀取失敗 / translation file failed to load';
       const pk = () => (window.LOOTANIA_I18N || {})[I18N.lang];
       if (!pk()) await loadScript(DATA_DIR + 'i18n/' + I18N.lang + '.js');
       if (!I18N.load(pk())) { $('lang').value = 'zh'; $('lang').title = I18N_FAIL; console.warn('[i18n] 找不到語言檔', DATA_DIR + 'i18n/'); }
       I18N.start();
-    }
+    })();
     if (!VERS) { loadVersion({ version: '', dir: '' }); return; }   // 沒有 versions.js：直接讀資料夾裡的 skills.js（舊結構）
     let want = null; try { want = new URLSearchParams(location.search).get('v'); } catch (e) {}
     loadVersion((want && verOf(want)) || latestV);
